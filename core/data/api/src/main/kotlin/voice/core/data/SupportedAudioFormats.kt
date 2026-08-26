@@ -38,6 +38,12 @@ public fun CachedDocumentFile.isAudioFile(): Boolean {
   return extension in supportedAudioFormats
 }
 
+public fun CachedDocumentFile.isSubRipFile(): Boolean {
+  if (!isFile) return false
+  return name?.substringAfterLast(".", missingDelimiterValue = "")
+    ?.equals("srt", ignoreCase = true) == true
+}
+
 public fun CachedDocumentFile.audioFileCount(): Int {
   return if (isAudioFile()) {
     1

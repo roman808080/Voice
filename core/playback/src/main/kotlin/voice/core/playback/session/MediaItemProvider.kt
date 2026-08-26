@@ -6,6 +6,7 @@ import androidx.datastore.core.DataStore
 import androidx.media3.common.C
 import androidx.media3.common.MediaItem
 import androidx.media3.common.MediaItem.ClippingConfiguration
+import androidx.media3.common.MimeTypes
 import androidx.media3.session.MediaSession.MediaItemsWithStartPosition
 import dev.zacsweers.metro.Inject
 import kotlinx.coroutines.flow.first
@@ -152,6 +153,7 @@ class MediaItemProvider(
     sourceUri = chapter.id.toUri(),
     imageUri = content.cover?.toProvidedUri(),
     artist = content.author,
+    subtitleConfigurations = chapter.subtitleConfigurations(),
     mediaType = MediaType.AudioBookChapter,
   )
 
@@ -169,6 +171,7 @@ class MediaItemProvider(
     imageUri = content.cover?.toProvidedUri(),
     artist = content.author,
     durationMs = playbackItem.mark.durationMs,
+    subtitleConfigurations = playbackItem.chapter.subtitleConfigurations(),
     clippingConfiguration = ClippingConfiguration.Builder()
       .setStartPositionMs(playbackItem.mark.startMs)
       .setEndPositionMs(playbackItem.mark.endMs)
@@ -177,4 +180,14 @@ class MediaItemProvider(
   )
 
   private fun File.toProvidedUri(): Uri = imageFileProvider.uri(this)
+
+  private fun Chapter.subtitleConfigurations(): List<MediaItem.SubtitleConfiguration> {
+    val uri = subtitleUri ?: return emptyList()
+    return listOf(
+      MediaItem.SubtitleConfiguration.Builder(uri)
+        .setMimeType(MimeTypes.APPLICATION_SUBRIP)
+        .setSelectionFlags(C.SELECTION_FLAG_DEFAULT)
+        .build(),
+    )
+  }
 }

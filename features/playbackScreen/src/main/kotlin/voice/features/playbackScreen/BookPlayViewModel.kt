@@ -100,6 +100,9 @@ class BookPlayViewModel(
     }.collectAsState(initial = null).value ?: return null
 
     val experimentalPlaybackPersistence = experimentalPlaybackPersistenceFeatureFlag.get()
+    val subtitles = remember(bookId) {
+      player.subtitleFlow(bookId)
+    }.collectAsState(emptyList()).value
     val livePlaybackState = if (experimentalPlaybackPersistence) {
       remember(bookId) { player.livePlaybackStateFlow(bookId) }
         .collectAsState(null).value
@@ -137,6 +140,7 @@ class BookPlayViewModel(
       playedTime = positionInCurrentMark.milliseconds,
       cover = book.content.coverUrl,
       skipSilence = book.content.skipSilence,
+      subtitles = subtitles,
     )
   }
 

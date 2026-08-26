@@ -24,6 +24,7 @@ import java.io.File
 import java.nio.file.Files
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertNull
 
 @RunWith(AndroidJUnit4::class)
 class MediaScannerTest {
@@ -158,6 +159,52 @@ class MediaScannerTest {
   }
 
   @Test
+  fun matchesSubRipFileBesideAudioFile() = test {
+    val folder = folder("book")
+    val chapterFile = audioFile(parent = folder, "Chapter.mp3")
+    val subtitleFile = file(parent = folder, "chapter.SRT")
+
+    scan(FolderType.SingleFolder, folder)
+
+    val chapter = bookRepo.get(BookId(folder.toUri()))!!.chapters.single()
+    assertEquals(expected = ChapterId(chapterFile.toUri()), actual = chapter.id)
+    assertEquals(expected = subtitleFile.toUri(), actual = chapter.subtitleUri)
+  }
+
+  @Test
+  fun updatesSubRipFileWithoutReanalyzingAudio() = test {
+    val folder = folder("book")
+    audioFile(parent = folder, "chapter.mp3")
+
+    scan(FolderType.SingleFolder, folder)
+    assertEquals(expected = 1, actual = analyzeCalls)
+
+    val subtitleFile = file(parent = folder, "chapter.srt")
+    scan(FolderType.SingleFolder, folder)
+    assertEquals(expected = 1, actual = analyzeCalls)
+    assertEquals(
+      expected = subtitleFile.toUri(),
+      actual = bookRepo.get(BookId(folder.toUri()))!!.chapters.single().subtitleUri,
+    )
+
+    check(subtitleFile.delete())
+    scan(FolderType.SingleFolder, folder)
+    assertEquals(expected = 1, actual = analyzeCalls)
+    assertNull(bookRepo.get(BookId(folder.toUri()))!!.chapters.single().subtitleUri)
+  }
+
+  @Test
+  fun doesNotDiscoverSubRipSiblingForSingleFileSelection() = test {
+    val folder = folder("book")
+    val chapterFile = audioFile(parent = folder, "chapter.mp3")
+    check(file(parent = folder, "chapter.srt").exists())
+
+    scan(FolderType.SingleFile, chapterFile)
+
+    assertNull(bookRepo.get(BookId(chapterFile.toUri()))!!.chapters.single().subtitleUri)
+  }
+
+  @Test
   fun newBookReusesFirstChapterMetadata() = test {
     val folder = folder("book")
     audioFile(parent = folder, "1.mp3")
@@ -238,11 +285,7 @@ class MediaScannerTest {
       name: String,
     ): File {
       check(name.endsWith(".mp3"))
-      return File(parent, name)
-        .also {
-          it.parentFile?.mkdirs()
-          check(it.createNewFile())
-        }
+      return file(parent, name)
         .also {
           coEvery { mediaAnalyzer.analyze(any()) } coAnswers {
             analyzeCalls++
@@ -259,6 +302,17 @@ class MediaScannerTest {
               part = "Part",
             )
           }
+        }
+    }
+
+    fun file(
+      parent: File,
+      name: String,
+    ): File {
+      return File(parent, name)
+        .also {
+          it.parentFile?.mkdirs()
+          check(it.createNewFile())
         }
     }
 

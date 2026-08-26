@@ -7,7 +7,6 @@ import androidx.media3.exoplayer.DefaultRenderersFactory
 import androidx.media3.exoplayer.Renderer
 import androidx.media3.exoplayer.mediacodec.MediaCodecSelector
 import androidx.media3.exoplayer.metadata.MetadataOutput
-import androidx.media3.exoplayer.text.TextOutput
 import androidx.media3.exoplayer.video.VideoRendererEventListener
 import dev.zacsweers.metro.Inject
 
@@ -22,15 +21,6 @@ class OnlyAudioRenderersFactory(context: Context) : DefaultRenderersFactory(cont
     eventHandler: Handler,
     eventListener: VideoRendererEventListener,
     allowedVideoJoiningTimeMs: Long,
-    out: ArrayList<Renderer>,
-  ) {
-  }
-
-  override fun buildTextRenderers(
-    context: Context,
-    output: TextOutput,
-    outputLooper: Looper,
-    extensionRendererMode: Int,
     out: ArrayList<Renderer>,
   ) {
   }

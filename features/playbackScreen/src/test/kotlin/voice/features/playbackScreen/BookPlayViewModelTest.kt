@@ -12,6 +12,7 @@ import io.mockk.verify
 import io.mockk.verifyOrder
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.runTest
@@ -72,6 +73,9 @@ class BookPlayViewModelTest {
   }
 
   private val player = mockk<PlayerController>()
+    .also {
+      every { it.subtitleFlow(book.id) } returns flowOf(emptyList())
+    }
   private val playStateManager = mockk<PlayStateManager> {
     every { playStateFlow } returns MutableStateFlow(PlayStateManager.PlayState.Paused)
   }
@@ -307,6 +311,22 @@ class BookPlayViewModelTest {
   }
 
   @Test
+  fun `viewState exposes current subtitles`() = scope.runTest {
+    val subtitles = MutableStateFlow(emptyList<String>())
+    val viewModel = viewModel(subtitleFlow = subtitles)
+
+    backgroundScope.launchMolecule(RecompositionMode.Immediate) {
+      viewModel.viewState()
+    }.test {
+      assertEquals(expected = null, actual = awaitItem())
+      assertEquals(expected = emptyList(), actual = awaitItem()!!.subtitles)
+
+      subtitles.value = listOf("First cue", "Second cue")
+      assertEquals(expected = subtitles.value, actual = awaitItem()!!.subtitles)
+    }
+  }
+
+  @Test
   fun `viewState uses currently playing demo book in kiosk mode`() = scope.runTest {
     val viewModel = viewModel(kioskMode = true)
 
@@ -326,6 +346,7 @@ class BookPlayViewModelTest {
     kioskMode: Boolean = false,
     livePlaybackFlow: MutableStateFlow<LivePlaybackState?> = MutableStateFlow(null),
     playStateFlow: MutableStateFlow<PlayStateManager.PlayState> = MutableStateFlow(PlayStateManager.PlayState.Paused),
+    subtitleFlow: MutableStateFlow<List<String>> = MutableStateFlow(emptyList()),
   ): BookPlayViewModel {
     return BookPlayViewModel(
       bookRepository = mockk {
@@ -336,6 +357,7 @@ class BookPlayViewModelTest {
       player = mockk {
         every { pauseIfCurrentBookDifferentFrom(book.id) } just Runs
         every { livePlaybackStateFlow(book.id) } returns livePlaybackFlow
+        every { subtitleFlow(book.id) } returns subtitleFlow
       },
       sleepTimer = sleepTimer,
       playStateManager = mockk {

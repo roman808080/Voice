@@ -4,7 +4,9 @@ import android.content.ComponentName
 import android.content.Context
 import androidx.datastore.core.DataStore
 import androidx.media3.common.C
+import androidx.media3.common.MediaItem
 import androidx.media3.common.Player
+import androidx.media3.common.text.CueGroup
 import androidx.media3.session.MediaController
 import androidx.media3.session.SessionToken
 import dev.zacsweers.metro.Inject
@@ -257,6 +259,46 @@ class PlayerController(
     updateTicking()
     awaitClose {
       tickJob?.cancel()
+      controller.removeListener(listener)
+    }
+  }
+
+  fun subtitleFlow(bookId: BookId): Flow<List<String>> = callbackFlow {
+    val controller = awaitConnect()
+    if (controller == null) {
+      trySend(emptyList())
+      close()
+      return@callbackFlow
+    }
+
+    fun cues(cueGroup: CueGroup): List<String> {
+      if (controller.currentBookId() != bookId) return emptyList()
+      return cueGroup.cues.mapNotNull { cue ->
+        cue.text?.toString()?.takeUnless(String::isBlank)
+      }
+    }
+
+    val listener = object : Player.Listener {
+      override fun onCues(cueGroup: CueGroup) {
+        trySend(cues(cueGroup))
+      }
+
+      override fun onMediaItemTransition(
+        mediaItem: MediaItem?,
+        reason: Int,
+      ) {
+        trySend(emptyList())
+      }
+    }
+
+    controller.addListener(listener)
+    val initialCues = if (controller.isCommandAvailable(Player.COMMAND_GET_TEXT)) {
+      cues(controller.currentCues)
+    } else {
+      emptyList()
+    }
+    trySend(initialCues)
+    awaitClose {
       controller.removeListener(listener)
     }
   }

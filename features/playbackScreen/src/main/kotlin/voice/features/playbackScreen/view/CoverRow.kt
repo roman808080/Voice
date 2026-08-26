@@ -4,12 +4,14 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import voice.core.data.BookId
 import voice.core.strings.R
@@ -21,11 +23,31 @@ internal fun CoverRow(
   bookId: BookId,
   cover: String?,
   sleepTimerState: BookPlayViewState.SleepTimerViewState,
+  subtitles: List<String>,
   onPlayClick: () -> Unit,
   modifier: Modifier = Modifier,
 ) {
   Box(modifier) {
     Cover(bookId = bookId, onDoubleClick = onPlayClick, cover = cover)
+    if (subtitles.isNotEmpty()) {
+      SelectionContainer(
+        modifier = Modifier
+          .align(Alignment.BottomCenter)
+          .padding(8.dp),
+      ) {
+        Text(
+          modifier = Modifier
+            .background(
+              color = Color(0xB3000000),
+              shape = RoundedCornerShape(8.dp),
+            )
+            .padding(horizontal = 12.dp, vertical = 8.dp),
+          text = subtitles.joinToString(separator = "\n"),
+          textAlign = TextAlign.Center,
+          color = Color.White,
+        )
+      }
+    }
     when (sleepTimerState) {
       BookPlayViewState.SleepTimerViewState.Disabled -> {
       }

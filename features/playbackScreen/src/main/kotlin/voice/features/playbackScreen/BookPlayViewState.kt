@@ -16,6 +16,7 @@ data class BookPlayViewState(
   val playing: Boolean,
   val cover: String?,
   val skipSilence: Boolean,
+  val subtitles: List<String> = emptyList(),
 ) {
 
   sealed interface SleepTimerViewState {
