@@ -1,4 +1,6 @@
 /.specify
+/.android-sdk/
+/.jdk-25/
 /site
 *.iml
 *.apk

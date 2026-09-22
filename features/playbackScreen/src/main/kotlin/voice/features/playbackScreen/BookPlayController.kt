@@ -5,10 +5,12 @@ import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.SnackbarResult
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.retain.retain
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.stringResource
 import androidx.navigation3.runtime.NavEntry
 import dev.zacsweers.metro.AppScope
@@ -34,6 +36,7 @@ fun BookPlayScreen(bookId: BookId) {
   val dialogState = viewModel.dialogState.value
   val viewState = viewModel.viewState()
     ?: return
+  KeepScreenOnWhilePlaying(viewState.playing)
   val bookmarkAddedMessage = stringResource(StringsR.string.bookmark_added_snackbar)
   val batteryOptimizationMessage = stringResource(StringsR.string.playback_battery_optimization_rationale)
   val batteryOptimizationAction = stringResource(StringsR.string.playback_battery_optimization_action)
@@ -97,6 +100,20 @@ fun BookPlayScreen(bookId: BookId) {
           onAcceptSleepAtEndOfChapter = viewModel::onAcceptSleepAtEndOfChapter,
         )
       }
+    }
+  }
+}
+
+@Composable
+internal fun KeepScreenOnWhilePlaying(isPlaying: Boolean) {
+  if (!isPlaying) return
+
+  val view = LocalView.current
+  DisposableEffect(view) {
+    val wasKeepScreenOn = view.keepScreenOn
+    view.keepScreenOn = true
+    onDispose {
+      view.keepScreenOn = wasKeepScreenOn
     }
   }
 }
