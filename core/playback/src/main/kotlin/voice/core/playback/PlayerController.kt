@@ -36,11 +36,17 @@ import voice.core.playback.session.MediaItemProvider
 import voice.core.playback.session.PlaybackService
 import voice.core.playback.session.bookId
 import voice.core.playback.session.playbackItemForPosition
+import voice.core.playback.session.positionInChapter
 import voice.core.playback.session.positionInMediaItem
 import voice.core.playback.session.sendCustomCommand
 import voice.core.playback.session.toMediaIdOrNull
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.milliseconds
+
+data class SubtitleSnapshot(
+  val texts: List<String>,
+  val positionInChapterMs: Long?,
+)
 
 @Inject
 class PlayerController(
@@ -263,39 +269,42 @@ class PlayerController(
     }
   }
 
-  fun subtitleFlow(bookId: BookId): Flow<List<String>> = callbackFlow {
+  fun subtitleFlow(bookId: BookId): Flow<SubtitleSnapshot> = callbackFlow {
     val controller = awaitConnect()
     if (controller == null) {
-      trySend(emptyList())
       close()
       return@callbackFlow
     }
 
-    fun cues(cueGroup: CueGroup): List<String> {
-      if (controller.currentBookId() != bookId) return emptyList()
-      return cueGroup.cues.mapNotNull { cue ->
+    fun snapshot(cueGroup: CueGroup): SubtitleSnapshot {
+      if (controller.currentBookId() != bookId) return SubtitleSnapshot(emptyList(), null)
+      val texts = cueGroup.cues.mapNotNull { cue ->
         cue.text?.toString()?.takeUnless(String::isBlank)
       }
+      val positionInChapterMs = controller.currentMediaItem?.mediaId
+        ?.toMediaIdOrNull()
+        ?.positionInChapter(controller.currentPosition)
+      return SubtitleSnapshot(texts, positionInChapterMs)
     }
 
     val listener = object : Player.Listener {
       override fun onCues(cueGroup: CueGroup) {
-        trySend(cues(cueGroup))
+        trySend(snapshot(cueGroup))
       }
 
       override fun onMediaItemTransition(
         mediaItem: MediaItem?,
         reason: Int,
       ) {
-        trySend(emptyList())
+        trySend(SubtitleSnapshot(emptyList(), null))
       }
     }
 
     controller.addListener(listener)
     val initialCues = if (controller.isCommandAvailable(Player.COMMAND_GET_TEXT)) {
-      cues(controller.currentCues)
+      snapshot(controller.currentCues)
     } else {
-      emptyList()
+      SubtitleSnapshot(emptyList(), null)
     }
     trySend(initialCues)
     awaitClose {

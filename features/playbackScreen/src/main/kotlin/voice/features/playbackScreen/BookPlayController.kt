@@ -76,6 +76,7 @@ fun BookPlayScreen(bookId: BookId) {
     onSkipToNext = viewModel::next,
     onSkipToPrevious = viewModel::previous,
     onCurrentChapterClick = viewModel::onCurrentChapterClick,
+    onSubtitleClick = viewModel::seekToSubtitle,
     useLandscapeLayout = LocalConfiguration.current.orientation == ORIENTATION_LANDSCAPE,
     snackbarHostState = snackbarHostState,
   )

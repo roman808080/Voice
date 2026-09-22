@@ -24,6 +24,7 @@ dependencies {
   implementation(libs.serialization.json)
 
   implementation(libs.media3.exoplayer)
+  implementation(libs.media3.extractor)
   implementation(libs.media3.session)
 
   testImplementation(libs.bundles.testing.jvm)

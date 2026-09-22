@@ -9,10 +9,19 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import kotlinx.coroutines.launch
 import voice.core.data.BookId
+import voice.core.data.ChapterId
 import voice.features.playbackScreen.BookPlayViewState
 import kotlin.time.Duration
 
@@ -28,16 +37,39 @@ internal fun BookPlayContent(
   onSkipToNext: () -> Unit,
   onSkipToPrevious: () -> Unit,
   onCurrentChapterClick: () -> Unit,
+  onSubtitleClick: (ChapterId, Duration) -> Unit,
   useLandscapeLayout: Boolean,
 ) {
+  var showTranscript by rememberSaveable { mutableStateOf(false) }
+  val transcriptListState = rememberLazyListState()
+  val transcriptVisible = showTranscript && viewState.transcriptCues.isNotEmpty()
+  val currentCueIndex = viewState.currentTranscriptCueIndex
+  val scope = rememberCoroutineScope()
+  LaunchedEffect(transcriptVisible, viewState.transcriptSectionId) {
+    if (transcriptVisible && currentCueIndex != null) {
+      transcriptListState.scrollToItem(currentCueIndex)
+    }
+  }
+  val onJumpToCurrentSubtitle: (() -> Unit)? = if (transcriptVisible && currentCueIndex != null) {
+    {
+      scope.launch {
+        transcriptListState.animateScrollToItem(currentCueIndex)
+      }
+    }
+  } else {
+    null
+  }
+
   if (useLandscapeLayout) {
     Row(Modifier.padding(contentPadding)) {
-      CoverRow(
+      PlaybackMediaPane(
         bookId = bookId,
-        cover = viewState.cover,
         onPlayClick = onPlayClick,
-        sleepTimerState = viewState.sleepTimerState,
-        subtitles = viewState.subtitles,
+        viewState = viewState,
+        showTranscript = showTranscript,
+        onShowTranscriptChange = { showTranscript = it },
+        transcriptListState = transcriptListState,
+        onSubtitleClick = onSubtitleClick,
         modifier = Modifier
           .fillMaxHeight()
           .weight(1F)
@@ -70,17 +102,20 @@ internal fun BookPlayContent(
           onPlayClick = onPlayClick,
           onRewindClick = onRewindClick,
           onFastForwardClick = onFastForwardClick,
+          onJumpToCurrentSubtitle = onJumpToCurrentSubtitle,
         )
       }
     }
   } else {
     Column(Modifier.padding(contentPadding)) {
-      CoverRow(
+      PlaybackMediaPane(
         bookId = bookId,
         onPlayClick = onPlayClick,
-        cover = viewState.cover,
-        sleepTimerState = viewState.sleepTimerState,
-        subtitles = viewState.subtitles,
+        viewState = viewState,
+        showTranscript = showTranscript,
+        onShowTranscriptChange = { showTranscript = it },
+        transcriptListState = transcriptListState,
+        onSubtitleClick = onSubtitleClick,
         modifier = Modifier
           .fillMaxWidth()
           .weight(1F)
@@ -108,6 +143,7 @@ internal fun BookPlayContent(
         onPlayClick = onPlayClick,
         onRewindClick = onRewindClick,
         onFastForwardClick = onFastForwardClick,
+        onJumpToCurrentSubtitle = onJumpToCurrentSubtitle,
       )
       Spacer(modifier = Modifier.size(24.dp))
     }

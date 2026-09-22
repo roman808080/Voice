@@ -9,6 +9,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.tooling.preview.PreviewParameter
 import androidx.compose.ui.tooling.preview.PreviewParameterProvider
 import voice.core.data.BookId
+import voice.core.data.ChapterId
 import voice.core.ui.VoiceTheme
 import voice.features.playbackScreen.BookPlayViewState
 import kotlin.time.Duration
@@ -33,6 +34,7 @@ internal fun BookPlayView(
   onSkipToPrevious: () -> Unit,
   onCloseClick: () -> Unit,
   onCurrentChapterClick: () -> Unit,
+  onSubtitleClick: (ChapterId, Duration) -> Unit,
   snackbarHostState: SnackbarHostState = remember { SnackbarHostState() },
 ) {
   Scaffold(
@@ -64,6 +66,7 @@ internal fun BookPlayView(
         onSkipToNext = onSkipToNext,
         onSkipToPrevious = onSkipToPrevious,
         onCurrentChapterClick = onCurrentChapterClick,
+        onSubtitleClick = onSubtitleClick,
         useLandscapeLayout = useLandscapeLayout,
       )
     },
@@ -94,6 +97,7 @@ private fun BookPlayPreview(
       onSkipToPrevious = {},
       onCloseClick = {},
       onCurrentChapterClick = {},
+      onSubtitleClick = { _, _ -> },
       useLandscapeLayout = false,
     )
   }

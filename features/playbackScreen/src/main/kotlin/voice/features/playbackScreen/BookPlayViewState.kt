@@ -1,6 +1,7 @@
 package voice.features.playbackScreen
 
 import androidx.compose.runtime.Immutable
+import voice.core.data.ChapterId
 import voice.core.playback.misc.Decibel
 import voice.features.sleepTimer.SleepTimerViewState
 import kotlin.time.Duration
@@ -17,7 +18,20 @@ data class BookPlayViewState(
   val cover: String?,
   val skipSilence: Boolean,
   val subtitles: List<String> = emptyList(),
+  val transcriptCues: List<TranscriptCue> = emptyList(),
+  val activeTranscriptCueIndices: Set<Int> = emptySet(),
+  val currentTranscriptCueIndex: Int? = null,
+  val transcriptSectionId: String? = null,
 ) {
+
+  @Immutable
+  data class TranscriptCue(
+    val chapterId: ChapterId,
+    val text: String,
+    val timestamp: String,
+    val position: Duration,
+    val endPosition: Duration,
+  )
 
   sealed interface SleepTimerViewState {
     data object Disabled : SleepTimerViewState

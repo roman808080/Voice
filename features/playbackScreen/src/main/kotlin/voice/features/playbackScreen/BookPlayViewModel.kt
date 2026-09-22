@@ -1,10 +1,12 @@
 package voice.features.playbackScreen
 
+import android.net.Uri
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.State
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.datastore.core.DataStore
 import dev.zacsweers.metro.Assisted
@@ -19,6 +21,8 @@ import voice.core.common.DispatcherProvider
 import voice.core.common.MainScope
 import voice.core.data.Book
 import voice.core.data.BookId
+import voice.core.data.ChapterId
+import voice.core.data.ChapterMark
 import voice.core.data.KioskModeDemoData
 import voice.core.data.durationMs
 import voice.core.data.markForPosition
@@ -33,6 +37,8 @@ import voice.core.featureflag.KioskModeFeatureFlagQualifier
 import voice.core.logging.api.Logger
 import voice.core.playback.CurrentBookResolver
 import voice.core.playback.PlayerController
+import voice.core.playback.SubtitleCue
+import voice.core.playback.SubtitleReader
 import voice.core.playback.misc.Decibel
 import voice.core.playback.misc.VolumeGain
 import voice.core.playback.overlay
@@ -56,6 +62,7 @@ class BookPlayViewModel(
   private val bookRepository: BookRepository,
   private val currentBookResolver: CurrentBookResolver,
   private val player: PlayerController,
+  private val subtitleReader: SubtitleReader,
   private val sleepTimer: SleepTimer,
   private val playStateManager: PlayStateManager,
   @CurrentBookStore
@@ -100,9 +107,10 @@ class BookPlayViewModel(
     }.collectAsState(initial = null).value ?: return null
 
     val experimentalPlaybackPersistence = experimentalPlaybackPersistenceFeatureFlag.get()
-    val subtitles = remember(bookId) {
+    val subtitleSnapshot = remember(bookId) {
       player.subtitleFlow(bookId)
-    }.collectAsState(emptyList()).value
+    }.collectAsState(null).value
+    val subtitles = subtitleSnapshot?.texts.orEmpty()
     val livePlaybackState = if (experimentalPlaybackPersistence) {
       remember(bookId) { player.livePlaybackStateFlow(bookId) }
         .collectAsState(null).value
@@ -120,7 +128,33 @@ class BookPlayViewModel(
     }
     val isPlaying = livePlaybackState?.isPlaying ?: (managerPlayState == PlayStateManager.PlayState.Playing)
 
-    val currentMark = book.currentChapter.markForPosition(book.content.positionInChapter)
+    val currentChapter = book.currentChapter
+    val currentMark = currentChapter.markForPosition(book.content.positionInChapter)
+    val loadedTranscript = produceState(
+      initialValue = LoadedTranscript(currentChapter.id, currentChapter.subtitleUri, emptyList()),
+      key1 = currentChapter.id,
+      key2 = currentChapter.subtitleUri,
+    ) {
+      value = LoadedTranscript(
+        chapterId = currentChapter.id,
+        subtitleUri = currentChapter.subtitleUri,
+        cues = subtitleReader.read(currentChapter.subtitleUri),
+      )
+    }.value
+    val loadedCues = loadedTranscript.takeIf {
+      it.chapterId == currentChapter.id && it.subtitleUri == currentChapter.subtitleUri
+    }?.cues.orEmpty()
+    val transcriptCues = remember(loadedCues, currentChapter.id, currentMark) {
+      loadedCues.toTranscriptCues(
+        chapterId = currentChapter.id,
+        currentMark = currentMark,
+      )
+    }
+    val transcriptPosition = transcriptCues.transcriptPosition(
+      positionInChapterMs = book.content.positionInChapter,
+      activeSubtitles = subtitleSnapshot?.takeIf { it.positionInChapterMs != null }?.texts,
+      activeSubtitlePositionInChapterMs = subtitleSnapshot?.positionInChapterMs,
+    )
     val positionInCurrentMark = if (isPlaying && currentMark.durationMs > 0) {
       val relativePosition = book.content.positionInChapter - currentMark.startMs
       relativePosition.coerceIn(0L, currentMark.durationMs)
@@ -141,6 +175,10 @@ class BookPlayViewModel(
       cover = book.content.coverUrl,
       skipSilence = book.content.skipSilence,
       subtitles = subtitles,
+      transcriptCues = transcriptCues,
+      activeTranscriptCueIndices = transcriptPosition.activeCueIndices,
+      currentTranscriptCueIndex = transcriptPosition.currentCueIndex,
+      transcriptSectionId = "${currentChapter.id.value}:${currentChapter.subtitleUri}:${currentMark.startMs}",
     )
   }
 
@@ -344,6 +382,13 @@ class BookPlayViewModel(
     }
   }
 
+  fun seekToSubtitle(
+    chapterId: ChapterId,
+    position: Duration,
+  ) {
+    player.setPosition(position.inWholeMilliseconds, chapterId)
+  }
+
   fun toggleSleepTimer() {
     scope.launch {
       Logger.d("toggleSleepTimer while active=${sleepTimer.state.value}")
@@ -378,6 +423,75 @@ class BookPlayViewModel(
   @AssistedFactory
   interface Factory {
     fun create(bookId: BookId): BookPlayViewModel
+  }
+}
+
+private data class LoadedTranscript(
+  val chapterId: ChapterId,
+  val subtitleUri: Uri?,
+  val cues: List<SubtitleCue>,
+)
+
+internal data class TranscriptPosition(
+  val activeCueIndices: Set<Int>,
+  val currentCueIndex: Int?,
+)
+
+internal fun List<SubtitleCue>.toTranscriptCues(
+  chapterId: ChapterId,
+  currentMark: ChapterMark,
+): List<BookPlayViewState.TranscriptCue> {
+  return filter { cue ->
+    cue.startMs <= currentMark.endMs && cue.endMs > currentMark.startMs
+  }.map { cue ->
+    val startMs = cue.startMs.coerceAtLeast(currentMark.startMs)
+    BookPlayViewState.TranscriptCue(
+      chapterId = chapterId,
+      text = cue.text,
+      timestamp = formatTime(
+        timeMs = startMs - currentMark.startMs,
+        durationMs = currentMark.durationMs,
+      ),
+      position = startMs.milliseconds,
+      endPosition = cue.endMs.milliseconds,
+    )
+  }
+}
+
+internal fun List<BookPlayViewState.TranscriptCue>.transcriptPosition(
+  positionInChapterMs: Long,
+  activeSubtitles: List<String>? = null,
+  activeSubtitlePositionInChapterMs: Long? = null,
+): TranscriptPosition {
+  val timedActiveCueIndices = indices.filterTo(mutableSetOf()) { index ->
+    val cue = this[index]
+    positionInChapterMs >= cue.position.inWholeMilliseconds && positionInChapterMs < cue.endPosition.inWholeMilliseconds
+  }
+  val activeCueIndices = if (activeSubtitles == null) {
+    timedActiveCueIndices
+  } else {
+    val activePositionInChapterMs = activeSubtitlePositionInChapterMs ?: positionInChapterMs
+    activeSubtitles.mapNotNullTo(mutableSetOf()) { subtitle ->
+      indices.filter { this[it].text == subtitle }
+        .minByOrNull { index -> this[index].distanceFrom(activePositionInChapterMs) }
+    }
+  }
+  val currentCueIndex = activeCueIndices.firstOrNull()
+    ?: timedActiveCueIndices.firstOrNull()
+    ?: indexOfFirst { it.position.inWholeMilliseconds >= positionInChapterMs }
+      .takeIf { it >= 0 }
+    ?: lastIndex.takeIf { it >= 0 }
+  return TranscriptPosition(
+    activeCueIndices = activeCueIndices,
+    currentCueIndex = currentCueIndex,
+  )
+}
+
+private fun BookPlayViewState.TranscriptCue.distanceFrom(positionInChapterMs: Long): Long {
+  return when {
+    positionInChapterMs < position.inWholeMilliseconds -> position.inWholeMilliseconds - positionInChapterMs
+    positionInChapterMs >= endPosition.inWholeMilliseconds -> positionInChapterMs - endPosition.inWholeMilliseconds + 1
+    else -> 0L
   }
 }
 
