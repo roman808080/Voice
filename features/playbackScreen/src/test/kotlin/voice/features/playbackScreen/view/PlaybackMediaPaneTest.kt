@@ -146,6 +146,36 @@ class PlaybackMediaPaneTest {
   }
 
   @Test
+  fun `auto synchronization toggle is only shown with transcript`() {
+    var showTranscript by mutableStateOf(false)
+    composeRule.setContent {
+      VoiceTheme {
+        PlaybackMediaPane(
+          bookId = BookId("book"),
+          viewState = viewState(),
+          showTranscript = showTranscript,
+          onShowTranscriptChange = { showTranscript = it },
+          autoSynchronizeTranscript = false,
+          onAutoSynchronizeTranscriptChange = {},
+          transcriptListState = rememberLazyListState(),
+          onJumpToCurrentSubtitle = null,
+          onPlayClick = {},
+          onSubtitleClick = { _, _ -> },
+          modifier = Modifier.width(320.dp),
+        )
+      }
+    }
+
+    composeRule.onNodeWithContentDescription("Automatically follow current subtitle").assertDoesNotExist()
+
+    composeRule.onNodeWithText("Transcript").performClick()
+    composeRule.onNodeWithContentDescription("Automatically follow current subtitle").assertIsDisplayed()
+
+    composeRule.onNodeWithText("Cover").performClick()
+    composeRule.onNodeWithContentDescription("Automatically follow current subtitle").assertDoesNotExist()
+  }
+
+  @Test
   fun `auto synchronization scrolls to an invisible current cue`() {
     var viewState by mutableStateOf(scrollingViewState(currentCueIndex = 0))
     lateinit var listState: androidx.compose.foundation.lazy.LazyListState

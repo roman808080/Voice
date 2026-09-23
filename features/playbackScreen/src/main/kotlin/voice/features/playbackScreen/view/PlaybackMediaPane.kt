@@ -85,7 +85,6 @@ internal fun PlaybackMediaPane(
 
   Column(modifier) {
     if (viewState.transcriptCues.isNotEmpty()) {
-      val autoSynchronizeDescription = stringResource(StringsR.string.playback_transcript_auto_synchronize)
       Row(
         modifier = Modifier
           .align(Alignment.CenterHorizontally)
@@ -93,13 +92,16 @@ internal fun PlaybackMediaPane(
         horizontalArrangement = Arrangement.spacedBy(4.dp),
         verticalAlignment = Alignment.CenterVertically,
       ) {
-        Switch(
-          checked = autoSynchronizeTranscript,
-          onCheckedChange = onAutoSynchronizeTranscriptChange,
-          modifier = Modifier.semantics {
-            contentDescription = autoSynchronizeDescription
-          },
-        )
+        if (showTranscript) {
+          val autoSynchronizeDescription = stringResource(StringsR.string.playback_transcript_auto_synchronize)
+          Switch(
+            checked = autoSynchronizeTranscript,
+            onCheckedChange = onAutoSynchronizeTranscriptChange,
+            modifier = Modifier.semantics {
+              contentDescription = autoSynchronizeDescription
+            },
+          )
+        }
         SingleChoiceSegmentedButtonRow {
           val labels = listOf(
             stringResource(StringsR.string.playback_display_cover),
