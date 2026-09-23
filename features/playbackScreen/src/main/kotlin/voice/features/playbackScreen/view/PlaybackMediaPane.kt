@@ -73,7 +73,13 @@ internal fun PlaybackMediaPane(
     if (autoSynchronizeTranscript && transcriptVisible) {
       snapshotFlow {
         currentCueIndex.value?.let { index ->
-          index to transcriptListState.layoutInfo.visibleItemsInfo.any { it.index == index }
+          val layoutInfo = transcriptListState.layoutInfo
+          val itemInfo = layoutInfo.visibleItemsInfo.find { it.index == index }
+          index to (
+            itemInfo != null &&
+              itemInfo.offset >= layoutInfo.viewportStartOffset &&
+              itemInfo.offset + itemInfo.size <= layoutInfo.viewportEndOffset
+            )
         }
       }.collect { currentCue ->
         if (currentCue != null && !currentCue.second) {

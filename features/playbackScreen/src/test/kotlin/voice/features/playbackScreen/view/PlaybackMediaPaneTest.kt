@@ -210,6 +210,43 @@ class PlaybackMediaPaneTest {
   }
 
   @Test
+  fun `auto synchronization fully reveals a partially visible current cue`() {
+    var autoSynchronize by mutableStateOf(false)
+    lateinit var listState: androidx.compose.foundation.lazy.LazyListState
+
+    composeRule.setContent {
+      VoiceTheme {
+        Box(Modifier.width(320.dp)) {
+          listState = rememberLazyListState(
+            initialFirstVisibleItemIndex = 15,
+            initialFirstVisibleItemScrollOffset = 1,
+          )
+          PlaybackMediaPane(
+            bookId = BookId("book"),
+            viewState = scrollingViewState(currentCueIndex = 15),
+            showTranscript = true,
+            onShowTranscriptChange = {},
+            autoSynchronizeTranscript = autoSynchronize,
+            onAutoSynchronizeTranscriptChange = { autoSynchronize = it },
+            transcriptListState = listState,
+            onJumpToCurrentSubtitle = {},
+            onPlayClick = {},
+            onSubtitleClick = { _, _ -> },
+          )
+        }
+      }
+    }
+
+    composeRule.runOnIdle {
+      assertEquals(expected = 1, actual = listState.firstVisibleItemScrollOffset)
+      autoSynchronize = true
+    }
+    composeRule.runOnIdle {
+      assertEquals(expected = 0, actual = listState.firstVisibleItemScrollOffset)
+    }
+  }
+
+  @Test
   fun `auto synchronization remains off until enabled`() {
     var autoSynchronize by mutableStateOf(false)
     lateinit var listState: androidx.compose.foundation.lazy.LazyListState
