@@ -41,6 +41,7 @@ internal fun BookPlayContent(
   useLandscapeLayout: Boolean,
 ) {
   var showTranscript by rememberSaveable { mutableStateOf(false) }
+  var autoSynchronizeTranscript by rememberSaveable { mutableStateOf(false) }
   val transcriptListState = rememberLazyListState()
   val transcriptVisible = showTranscript && viewState.transcriptCues.isNotEmpty()
   val currentCueIndex = viewState.currentTranscriptCueIndex
@@ -68,7 +69,10 @@ internal fun BookPlayContent(
         viewState = viewState,
         showTranscript = showTranscript,
         onShowTranscriptChange = { showTranscript = it },
+        autoSynchronizeTranscript = autoSynchronizeTranscript,
+        onAutoSynchronizeTranscriptChange = { autoSynchronizeTranscript = it },
         transcriptListState = transcriptListState,
+        onJumpToCurrentSubtitle = onJumpToCurrentSubtitle,
         onSubtitleClick = onSubtitleClick,
         modifier = Modifier
           .fillMaxHeight()
@@ -102,7 +106,6 @@ internal fun BookPlayContent(
           onPlayClick = onPlayClick,
           onRewindClick = onRewindClick,
           onFastForwardClick = onFastForwardClick,
-          onJumpToCurrentSubtitle = onJumpToCurrentSubtitle,
         )
       }
     }
@@ -114,7 +117,10 @@ internal fun BookPlayContent(
         viewState = viewState,
         showTranscript = showTranscript,
         onShowTranscriptChange = { showTranscript = it },
+        autoSynchronizeTranscript = autoSynchronizeTranscript,
+        onAutoSynchronizeTranscriptChange = { autoSynchronizeTranscript = it },
         transcriptListState = transcriptListState,
+        onJumpToCurrentSubtitle = onJumpToCurrentSubtitle,
         onSubtitleClick = onSubtitleClick,
         modifier = Modifier
           .fillMaxWidth()
@@ -143,7 +149,6 @@ internal fun BookPlayContent(
         onPlayClick = onPlayClick,
         onRewindClick = onRewindClick,
         onFastForwardClick = onFastForwardClick,
-        onJumpToCurrentSubtitle = onJumpToCurrentSubtitle,
       )
       Spacer(modifier = Modifier.size(24.dp))
     }

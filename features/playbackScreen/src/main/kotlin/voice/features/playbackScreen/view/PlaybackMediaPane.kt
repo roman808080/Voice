@@ -1,7 +1,9 @@
 package voice.features.playbackScreen.view
 
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -10,28 +12,38 @@ import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.selection.SelectionContainer
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import kotlinx.coroutines.flow.collect
 import voice.core.data.BookId
 import voice.core.data.ChapterId
 import voice.core.strings.R as StringsR
 import voice.core.ui.VoiceTheme
+import voice.core.ui.icons.VoiceIcons
 import voice.features.playbackScreen.BookPlayViewState
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.minutes
@@ -43,30 +55,73 @@ internal fun PlaybackMediaPane(
   viewState: BookPlayViewState,
   showTranscript: Boolean,
   onShowTranscriptChange: (Boolean) -> Unit,
+  autoSynchronizeTranscript: Boolean,
+  onAutoSynchronizeTranscriptChange: (Boolean) -> Unit,
   transcriptListState: LazyListState,
+  onJumpToCurrentSubtitle: (() -> Unit)?,
   onPlayClick: () -> Unit,
   onSubtitleClick: (ChapterId, Duration) -> Unit,
   modifier: Modifier = Modifier,
 ) {
+  val transcriptVisible = showTranscript && viewState.transcriptCues.isNotEmpty()
+  val currentCueIndex = rememberUpdatedState(viewState.currentTranscriptCueIndex)
+  LaunchedEffect(
+    autoSynchronizeTranscript,
+    transcriptVisible,
+    viewState.transcriptSectionId,
+  ) {
+    if (autoSynchronizeTranscript && transcriptVisible) {
+      snapshotFlow {
+        currentCueIndex.value?.let { index ->
+          index to transcriptListState.layoutInfo.visibleItemsInfo.any { it.index == index }
+        }
+      }.collect { currentCue ->
+        if (currentCue != null && !currentCue.second) {
+          transcriptListState.scrollToItem(currentCue.first)
+        }
+      }
+    }
+  }
+
   Column(modifier) {
     if (viewState.transcriptCues.isNotEmpty()) {
-      SingleChoiceSegmentedButtonRow(
+      val autoSynchronizeDescription = stringResource(StringsR.string.playback_transcript_auto_synchronize)
+      Row(
         modifier = Modifier
           .align(Alignment.CenterHorizontally)
           .padding(bottom = 8.dp),
+        horizontalArrangement = Arrangement.spacedBy(4.dp),
+        verticalAlignment = Alignment.CenterVertically,
       ) {
-        val labels = listOf(
-          stringResource(StringsR.string.playback_display_cover),
-          stringResource(StringsR.string.playback_display_transcript),
+        Switch(
+          checked = autoSynchronizeTranscript,
+          onCheckedChange = onAutoSynchronizeTranscriptChange,
+          modifier = Modifier.semantics {
+            contentDescription = autoSynchronizeDescription
+          },
         )
-        labels.forEachIndexed { index, label ->
-          val transcript = index == 1
-          SegmentedButton(
-            selected = showTranscript == transcript,
-            onClick = { onShowTranscriptChange(transcript) },
-            shape = SegmentedButtonDefaults.itemShape(index = index, count = labels.size),
-          ) {
-            Text(label)
+        SingleChoiceSegmentedButtonRow {
+          val labels = listOf(
+            stringResource(StringsR.string.playback_display_cover),
+            stringResource(StringsR.string.playback_display_transcript),
+          )
+          labels.forEachIndexed { index, label ->
+            val transcript = index == 1
+            SegmentedButton(
+              selected = showTranscript == transcript,
+              onClick = { onShowTranscriptChange(transcript) },
+              shape = SegmentedButtonDefaults.itemShape(index = index, count = labels.size),
+            ) {
+              Text(label)
+            }
+          }
+        }
+        if (onJumpToCurrentSubtitle != null) {
+          IconButton(onClick = onJumpToCurrentSubtitle) {
+            Icon(
+              imageVector = VoiceIcons.Timelapse,
+              contentDescription = stringResource(StringsR.string.playback_transcript_jump_to_current),
+            )
           }
         }
       }
@@ -126,12 +181,17 @@ private fun TranscriptList(
             selected = active
             if (active) stateDescription = currentDescription
           }
-          .clickable { onSubtitleClick(cue.chapterId, cue.position) },
+          .combinedClickable(
+            onClick = { onSubtitleClick(cue.chapterId, cue.position) },
+            onLongClick = {},
+          ),
         trailingContent = {
           Text(text = cue.timestamp)
         },
       ) {
-        Text(text = cue.text)
+        SelectionContainer {
+          Text(text = cue.text)
+        }
       }
     }
   }
@@ -183,7 +243,10 @@ private fun TranscriptPreview() {
       ),
       showTranscript = true,
       onShowTranscriptChange = {},
+      autoSynchronizeTranscript = false,
+      onAutoSynchronizeTranscriptChange = {},
       transcriptListState = rememberLazyListState(),
+      onJumpToCurrentSubtitle = {},
       onPlayClick = {},
       onSubtitleClick = { _, _ -> },
       modifier = Modifier.fillMaxSize(),
