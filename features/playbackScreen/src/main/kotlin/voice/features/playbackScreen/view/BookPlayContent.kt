@@ -41,7 +41,7 @@ internal fun BookPlayContent(
   useLandscapeLayout: Boolean,
 ) {
   var showTranscript by rememberSaveable { mutableStateOf(false) }
-  var autoSynchronizeTranscript by rememberSaveable { mutableStateOf(false) }
+  var autoSynchronizeTranscript by rememberSaveable { mutableStateOf(true) }
   val transcriptListState = rememberLazyListState()
   val transcriptVisible = showTranscript && viewState.transcriptCues.isNotEmpty()
   val currentCueIndex = viewState.currentTranscriptCueIndex
