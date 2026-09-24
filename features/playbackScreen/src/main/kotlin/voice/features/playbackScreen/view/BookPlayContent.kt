@@ -14,12 +14,10 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import kotlinx.coroutines.launch
 import voice.core.data.BookId
 import voice.core.data.ChapterId
 import voice.features.playbackScreen.BookPlayViewState
@@ -38,27 +36,17 @@ internal fun BookPlayContent(
   onSkipToPrevious: () -> Unit,
   onCurrentChapterClick: () -> Unit,
   onSubtitleClick: (ChapterId, Duration) -> Unit,
+  autoSynchronizeTranscript: Boolean,
   useLandscapeLayout: Boolean,
 ) {
   var showTranscript by rememberSaveable { mutableStateOf(false) }
-  var autoSynchronizeTranscript by rememberSaveable { mutableStateOf(true) }
   val transcriptListState = rememberLazyListState()
   val transcriptVisible = showTranscript && viewState.transcriptCues.isNotEmpty()
   val currentCueIndex = viewState.currentTranscriptCueIndex
-  val scope = rememberCoroutineScope()
   LaunchedEffect(transcriptVisible, viewState.transcriptSectionId) {
     if (transcriptVisible && currentCueIndex != null) {
       transcriptListState.scrollToItem(currentCueIndex)
     }
-  }
-  val onJumpToCurrentSubtitle: (() -> Unit)? = if (transcriptVisible && currentCueIndex != null) {
-    {
-      scope.launch {
-        transcriptListState.animateScrollToItem(currentCueIndex)
-      }
-    }
-  } else {
-    null
   }
 
   if (useLandscapeLayout) {
@@ -70,9 +58,7 @@ internal fun BookPlayContent(
         showTranscript = showTranscript,
         onShowTranscriptChange = { showTranscript = it },
         autoSynchronizeTranscript = autoSynchronizeTranscript,
-        onAutoSynchronizeTranscriptChange = { autoSynchronizeTranscript = it },
         transcriptListState = transcriptListState,
-        onJumpToCurrentSubtitle = onJumpToCurrentSubtitle,
         onSubtitleClick = onSubtitleClick,
         modifier = Modifier
           .fillMaxHeight()
@@ -118,9 +104,7 @@ internal fun BookPlayContent(
         showTranscript = showTranscript,
         onShowTranscriptChange = { showTranscript = it },
         autoSynchronizeTranscript = autoSynchronizeTranscript,
-        onAutoSynchronizeTranscriptChange = { autoSynchronizeTranscript = it },
         transcriptListState = transcriptListState,
-        onJumpToCurrentSubtitle = onJumpToCurrentSubtitle,
         onSubtitleClick = onSubtitleClick,
         modifier = Modifier
           .fillMaxWidth()

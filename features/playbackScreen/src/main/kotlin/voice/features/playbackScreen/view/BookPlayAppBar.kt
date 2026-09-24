@@ -28,6 +28,8 @@ internal fun BookPlayAppBar(
   onSpeedChangeClick: () -> Unit,
   onSkipSilenceClick: () -> Unit,
   onVolumeBoostClick: () -> Unit,
+  autoSynchronizeTranscript: Boolean,
+  onAutoSynchronizeTranscriptClick: () -> Unit,
   onCloseClick: () -> Unit,
 ) {
   val appBarActions: @Composable RowScope.() -> Unit = {
@@ -68,6 +70,9 @@ internal fun BookPlayAppBar(
       skipSilence = viewState.skipSilence,
       onSkipSilenceClick = onSkipSilenceClick,
       onVolumeBoostClick = onVolumeBoostClick,
+      showAutoSynchronizeTranscript = viewState.transcriptCues.isNotEmpty(),
+      autoSynchronizeTranscript = autoSynchronizeTranscript,
+      onAutoSynchronizeTranscriptClick = onAutoSynchronizeTranscriptClick,
     )
   }
   TopAppBar(

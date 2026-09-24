@@ -8,9 +8,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.test.assertIsDisplayed
-import androidx.compose.ui.test.assertIsOff
 import androidx.compose.ui.test.assertIsSelected
-import androidx.compose.ui.test.assertIsOn
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.isSelected
 import androidx.compose.ui.test.junit4.v2.createComposeRule
@@ -29,7 +27,6 @@ import voice.core.data.ChapterId
 import voice.core.ui.VoiceTheme
 import voice.features.playbackScreen.BookPlayViewState
 import kotlin.test.assertEquals
-import kotlin.test.assertTrue
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.minutes
 import kotlin.time.Duration.Companion.seconds
@@ -53,9 +50,7 @@ class PlaybackMediaPaneTest {
           showTranscript = showTranscript,
           onShowTranscriptChange = { showTranscript = it },
           autoSynchronizeTranscript = false,
-          onAutoSynchronizeTranscriptChange = {},
           transcriptListState = rememberLazyListState(),
-          onJumpToCurrentSubtitle = null,
           onPlayClick = {},
           onSubtitleClick = { _, position -> selectedPosition = position },
           modifier = Modifier,
@@ -88,9 +83,7 @@ class PlaybackMediaPaneTest {
           showTranscript = true,
           onShowTranscriptChange = {},
           autoSynchronizeTranscript = false,
-          onAutoSynchronizeTranscriptChange = {},
           transcriptListState = rememberLazyListState(),
-          onJumpToCurrentSubtitle = {},
           onPlayClick = {},
           onSubtitleClick = { _, position -> selectedPosition = position },
         )
@@ -104,75 +97,6 @@ class PlaybackMediaPaneTest {
     composeRule.runOnIdle {
       assertEquals(expected = null, actual = selectedPosition)
     }
-  }
-
-  @Test
-  fun `transcript controls are ordered around display selector`() {
-    var clicked = false
-    composeRule.setContent {
-      VoiceTheme {
-        PlaybackMediaPane(
-          bookId = BookId("book"),
-          viewState = viewState(),
-          showTranscript = true,
-          onShowTranscriptChange = {},
-          autoSynchronizeTranscript = false,
-          onAutoSynchronizeTranscriptChange = {},
-          transcriptListState = rememberLazyListState(),
-          onJumpToCurrentSubtitle = { clicked = true },
-          onPlayClick = {},
-          onSubtitleClick = { _, _ -> },
-          modifier = Modifier.width(320.dp),
-        )
-      }
-    }
-
-    val autoSynchronize = composeRule.onNodeWithContentDescription("Automatically follow current subtitle")
-    val cover = composeRule.onNodeWithText("Cover")
-    val transcript = composeRule.onNodeWithText("Transcript")
-    val jump = composeRule.onNodeWithContentDescription("Jump to current subtitle")
-
-    autoSynchronize.assertIsDisplayed().assertIsOff()
-    cover.assertIsDisplayed()
-    transcript.assertIsDisplayed()
-    jump.assertIsDisplayed().performClick()
-
-    assertTrue(autoSynchronize.fetchSemanticsNode().boundsInRoot.left < cover.fetchSemanticsNode().boundsInRoot.left)
-    assertTrue(cover.fetchSemanticsNode().boundsInRoot.left < transcript.fetchSemanticsNode().boundsInRoot.left)
-    assertTrue(transcript.fetchSemanticsNode().boundsInRoot.left < jump.fetchSemanticsNode().boundsInRoot.left)
-    composeRule.runOnIdle {
-      assertEquals(expected = true, actual = clicked)
-    }
-  }
-
-  @Test
-  fun `auto synchronization toggle is only shown with transcript`() {
-    var showTranscript by mutableStateOf(false)
-    composeRule.setContent {
-      VoiceTheme {
-        PlaybackMediaPane(
-          bookId = BookId("book"),
-          viewState = viewState(),
-          showTranscript = showTranscript,
-          onShowTranscriptChange = { showTranscript = it },
-          autoSynchronizeTranscript = false,
-          onAutoSynchronizeTranscriptChange = {},
-          transcriptListState = rememberLazyListState(),
-          onJumpToCurrentSubtitle = null,
-          onPlayClick = {},
-          onSubtitleClick = { _, _ -> },
-          modifier = Modifier.width(320.dp),
-        )
-      }
-    }
-
-    composeRule.onNodeWithContentDescription("Automatically follow current subtitle").assertDoesNotExist()
-
-    composeRule.onNodeWithText("Transcript").performClick()
-    composeRule.onNodeWithContentDescription("Automatically follow current subtitle").assertIsDisplayed()
-
-    composeRule.onNodeWithText("Cover").performClick()
-    composeRule.onNodeWithContentDescription("Automatically follow current subtitle").assertDoesNotExist()
   }
 
   @Test
@@ -190,9 +114,7 @@ class PlaybackMediaPaneTest {
             showTranscript = true,
             onShowTranscriptChange = {},
             autoSynchronizeTranscript = true,
-            onAutoSynchronizeTranscriptChange = {},
             transcriptListState = listState,
-            onJumpToCurrentSubtitle = {},
             onPlayClick = {},
             onSubtitleClick = { _, _ -> },
           )
@@ -227,9 +149,7 @@ class PlaybackMediaPaneTest {
             showTranscript = true,
             onShowTranscriptChange = {},
             autoSynchronizeTranscript = autoSynchronize,
-            onAutoSynchronizeTranscriptChange = { autoSynchronize = it },
             transcriptListState = listState,
-            onJumpToCurrentSubtitle = {},
             onPlayClick = {},
             onSubtitleClick = { _, _ -> },
           )
@@ -243,45 +163,6 @@ class PlaybackMediaPaneTest {
     }
     composeRule.runOnIdle {
       assertEquals(expected = 0, actual = listState.firstVisibleItemScrollOffset)
-    }
-  }
-
-  @Test
-  fun `auto synchronization remains off until enabled`() {
-    var autoSynchronize by mutableStateOf(false)
-    lateinit var listState: androidx.compose.foundation.lazy.LazyListState
-
-    composeRule.setContent {
-      VoiceTheme {
-        Box(Modifier.width(320.dp)) {
-          listState = rememberLazyListState(initialFirstVisibleItemIndex = 15)
-          PlaybackMediaPane(
-            bookId = BookId("book"),
-            viewState = scrollingViewState(currentCueIndex = 0),
-            showTranscript = true,
-            onShowTranscriptChange = {},
-            autoSynchronizeTranscript = autoSynchronize,
-            onAutoSynchronizeTranscriptChange = { autoSynchronize = it },
-            transcriptListState = listState,
-            onJumpToCurrentSubtitle = {},
-            onPlayClick = {},
-            onSubtitleClick = { _, _ -> },
-          )
-        }
-      }
-    }
-
-    composeRule.runOnIdle {
-      assertEquals(expected = 15, actual = listState.firstVisibleItemIndex)
-    }
-
-    composeRule.onNodeWithContentDescription("Automatically follow current subtitle")
-      .assertIsOff()
-      .performClick()
-      .assertIsOn()
-
-    composeRule.waitUntil(timeoutMillis = 5_000) {
-      listState.layoutInfo.visibleItemsInfo.any { it.index == 0 }
     }
   }
 

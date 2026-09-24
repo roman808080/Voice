@@ -13,15 +13,12 @@ import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.selection.SelectionContainer
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
-import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -32,7 +29,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
@@ -43,7 +39,6 @@ import voice.core.data.BookId
 import voice.core.data.ChapterId
 import voice.core.strings.R as StringsR
 import voice.core.ui.VoiceTheme
-import voice.core.ui.icons.VoiceIcons
 import voice.features.playbackScreen.BookPlayViewState
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.minutes
@@ -56,9 +51,7 @@ internal fun PlaybackMediaPane(
   showTranscript: Boolean,
   onShowTranscriptChange: (Boolean) -> Unit,
   autoSynchronizeTranscript: Boolean,
-  onAutoSynchronizeTranscriptChange: (Boolean) -> Unit,
   transcriptListState: LazyListState,
-  onJumpToCurrentSubtitle: (() -> Unit)?,
   onPlayClick: () -> Unit,
   onSubtitleClick: (ChapterId, Duration) -> Unit,
   modifier: Modifier = Modifier,
@@ -98,16 +91,6 @@ internal fun PlaybackMediaPane(
         horizontalArrangement = Arrangement.spacedBy(4.dp),
         verticalAlignment = Alignment.CenterVertically,
       ) {
-        if (showTranscript) {
-          val autoSynchronizeDescription = stringResource(StringsR.string.playback_transcript_auto_synchronize)
-          Switch(
-            checked = autoSynchronizeTranscript,
-            onCheckedChange = onAutoSynchronizeTranscriptChange,
-            modifier = Modifier.semantics {
-              contentDescription = autoSynchronizeDescription
-            },
-          )
-        }
         SingleChoiceSegmentedButtonRow {
           val labels = listOf(
             stringResource(StringsR.string.playback_display_cover),
@@ -122,14 +105,6 @@ internal fun PlaybackMediaPane(
             ) {
               Text(label)
             }
-          }
-        }
-        if (onJumpToCurrentSubtitle != null) {
-          IconButton(onClick = onJumpToCurrentSubtitle) {
-            Icon(
-              imageVector = VoiceIcons.Timelapse,
-              contentDescription = stringResource(StringsR.string.playback_transcript_jump_to_current),
-            )
           }
         }
       }
@@ -252,9 +227,7 @@ private fun TranscriptPreview() {
       showTranscript = true,
       onShowTranscriptChange = {},
       autoSynchronizeTranscript = false,
-      onAutoSynchronizeTranscriptChange = {},
       transcriptListState = rememberLazyListState(),
-      onJumpToCurrentSubtitle = {},
       onPlayClick = {},
       onSubtitleClick = { _, _ -> },
       modifier = Modifier.fillMaxSize(),

@@ -4,6 +4,7 @@ import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.performClick
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -30,6 +31,8 @@ class BookPlayAppBarTest {
           onSpeedChangeClick = {},
           onSkipSilenceClick = {},
           onVolumeBoostClick = {},
+          autoSynchronizeTranscript = true,
+          onAutoSynchronizeTranscriptClick = {},
           onCloseClick = {},
         )
       }
@@ -37,6 +40,8 @@ class BookPlayAppBarTest {
 
     composeRule.onNodeWithText("Selected book").assertDoesNotExist()
     composeRule.onNodeWithContentDescription("Close").assertIsDisplayed()
+    composeRule.onNodeWithContentDescription("More").performClick()
+    composeRule.onNodeWithText("Automatically follow current subtitle").assertDoesNotExist()
   }
 
   private fun viewState() = BookPlayViewState(
