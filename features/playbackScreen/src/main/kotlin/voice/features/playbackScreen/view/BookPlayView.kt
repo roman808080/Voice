@@ -51,7 +51,6 @@ internal fun BookPlayView(
         onSkipSilenceClick = onSkipSilenceClick,
         onVolumeBoostClick = onVolumeBoostClick,
         onCloseClick = onCloseClick,
-        useLandscapeLayout = useLandscapeLayout,
       )
     },
     content = {
