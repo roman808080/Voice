@@ -163,7 +163,7 @@ public interface StoreModule {
   @SingleIn(AppScope::class)
   @BookmarkTabStore
   private fun bookmarkTab(factory: VoiceDataStoreFactory): DataStore<Boolean> {
-    return factory.boolean("bookmarkThreadsTab", defaultValue = true)
+    return factory.boolean("bookmarkThreadsTab", defaultValue = false)
   }
 
   @Provides

@@ -1,10 +1,11 @@
 package voice.core.data.repo
 
-import androidx.room.RoomDatabase
-import androidx.room.withTransaction
 import dev.zacsweers.metro.AppScope
 import dev.zacsweers.metro.ContributesBinding
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.withContext
 import voice.core.data.Book
 import voice.core.data.BookContent
@@ -18,7 +19,6 @@ import java.time.Instant
 public class BookmarkRepoImpl
 internal constructor(
   private val dao: BookmarkDao,
-  private val appDb: RoomDatabase,
 ) : BookmarkRepo {
 
   override suspend fun deleteBookmark(id: Bookmark.Id) {
@@ -50,12 +50,14 @@ internal constructor(
     }
   }
 
-  override suspend fun bookmarks(book: BookContent): List<Bookmark> {
-    val chapters = book.chapters
-    return appDb.withTransaction {
-      chapters.runForMaxSqlVariableNumber {
-        dao.allForChapters(it)
-      }
+  override fun bookmarks(book: BookContent): Flow<List<Bookmark>> {
+    val flows = book.chapters.runForMaxSqlVariableNumber { chapterIds ->
+      listOf(dao.flowForChapters(chapterIds))
+    }
+    return when (flows.size) {
+      0 -> flowOf(emptyList())
+      1 -> flows.single()
+      else -> combine(flows) { bookmarks -> bookmarks.flatMap { it } }
     }
   }
 }

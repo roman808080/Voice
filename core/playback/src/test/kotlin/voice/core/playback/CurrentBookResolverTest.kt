@@ -6,7 +6,6 @@ import kotlinx.coroutines.test.runTest
 import voice.core.data.BookId
 import voice.core.data.Chapter
 import voice.core.data.ChapterId
-import voice.core.featureflag.MemoryFeatureFlag
 import voice.core.playback.session.search.book
 import java.time.Instant
 import kotlin.test.Test
@@ -37,21 +36,22 @@ class CurrentBookResolverTest {
   private val currentBookStore = MemoryDataStore<BookId?>(book.id)
 
   @Test
-  fun `returns persisted book when live playback persistence is disabled`() = runTest {
+  fun `returns persisted book when live playback state is unavailable`() = runTest {
     val resolver = CurrentBookResolver(
       bookRepository = mockk {
         coEvery { get(book.id) } returns book
       },
-      playerController = mockk(),
+      playerController = mockk {
+        coEvery { livePlaybackState(book.id) } returns null
+      },
       currentBookStore = currentBookStore,
-      experimentalPlaybackPersistenceFeatureFlag = MemoryFeatureFlag(false),
     )
 
     assertEquals(expected = book, actual = resolver.currentBook())
   }
 
   @Test
-  fun `overlays the current player position when live playback persistence is enabled`() = runTest {
+  fun `overlays the current player position`() = runTest {
     val resolver = CurrentBookResolver(
       bookRepository = mockk {
         coEvery { get(book.id) } returns book
@@ -66,7 +66,6 @@ class CurrentBookResolverTest {
         )
       },
       currentBookStore = currentBookStore,
-      experimentalPlaybackPersistenceFeatureFlag = MemoryFeatureFlag(true),
     )
 
     assertEquals(expected = book.chapters.last().id, actual = resolver.currentBook()?.content?.currentChapter)
@@ -83,7 +82,6 @@ class CurrentBookResolverTest {
         coEvery { livePlaybackState(book.id) } returns null
       },
       currentBookStore = currentBookStore,
-      experimentalPlaybackPersistenceFeatureFlag = MemoryFeatureFlag(true),
     )
 
     assertEquals(expected = book, actual = resolver.currentBook())

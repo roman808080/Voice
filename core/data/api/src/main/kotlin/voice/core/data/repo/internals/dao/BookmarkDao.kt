@@ -4,6 +4,7 @@ import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
+import kotlinx.coroutines.flow.Flow
 import voice.core.data.Bookmark
 import voice.core.data.ChapterId
 
@@ -17,5 +18,5 @@ public interface BookmarkDao {
   public suspend fun addBookmark(bookmark: Bookmark)
 
   @Query("SELECT * FROM bookmark2 WHERE chapterId IN(:chapters)")
-  public suspend fun allForChapters(chapters: List<@JvmSuppressWildcards ChapterId>): List<Bookmark>
+  public fun flowForChapters(chapters: List<@JvmSuppressWildcards ChapterId>): Flow<List<Bookmark>>
 }

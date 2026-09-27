@@ -1,5 +1,6 @@
 package voice.core.data.repo
 
+import kotlinx.coroutines.flow.Flow
 import voice.core.data.Book
 import voice.core.data.BookContent
 import voice.core.data.Bookmark
@@ -16,5 +17,5 @@ public interface BookmarkRepo {
     setBySleepTimer: Boolean,
   ): Bookmark
 
-  public suspend fun bookmarks(book: BookContent): List<Bookmark>
+  public fun bookmarks(book: BookContent): Flow<List<Bookmark>>
 }

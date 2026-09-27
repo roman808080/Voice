@@ -11,6 +11,8 @@ import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performTouchInput
+import androidx.compose.ui.test.click
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -19,6 +21,7 @@ import voice.core.data.BookId
 import voice.core.data.ChapterId
 import voice.core.ui.VoiceTheme
 import voice.features.playbackScreen.BookPlayViewState
+import kotlin.test.assertEquals
 import kotlin.time.Duration.Companion.minutes
 
 @RunWith(RobolectricTestRunner::class)
@@ -30,6 +33,7 @@ class BookPlayViewTest {
   @Test
   fun `auto synchronization displays persisted state and can be toggled from overflow menu`() {
     var viewState by mutableStateOf(viewState())
+    var toggleCount = 0
     composeRule.setContent {
       VoiceTheme {
         BookPlayView(
@@ -52,6 +56,7 @@ class BookPlayViewTest {
           onSubtitleClick = { _, _ -> },
           onExplainTranscriptPhrase = { _, _ -> },
           onAutoSynchronizeTranscriptClick = {
+            toggleCount++
             viewState = viewState.copy(autoSynchronizeTranscript = !viewState.autoSynchronizeTranscript)
           },
           onShowTranscriptChange = {},
@@ -64,10 +69,13 @@ class BookPlayViewTest {
     composeRule.onNodeWithText("Automatically follow current subtitle").assertIsDisplayed()
     composeRule.onNodeWithContentDescription("Automatically follow current subtitle")
       .assertIsOn()
-      .performClick()
+      .performTouchInput { click() }
 
     composeRule.onNodeWithContentDescription("More").performClick()
     composeRule.onNodeWithContentDescription("Automatically follow current subtitle").assertIsOff()
+    composeRule.runOnIdle {
+      assertEquals(expected = 1, actual = toggleCount)
+    }
   }
 
   @Test

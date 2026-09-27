@@ -17,6 +17,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.toggleableState
+import androidx.compose.ui.state.ToggleableState
 import voice.core.strings.R
 import voice.core.ui.icons.VoiceIcons
 
@@ -56,10 +58,7 @@ internal fun OverflowMenu(
         trailingIcon = {
           Checkbox(
             checked = skipSilence,
-            onCheckedChange = {
-              expanded = false
-              onSkipSilenceClick()
-            },
+            onCheckedChange = null,
           )
         },
       )
@@ -76,12 +75,10 @@ internal fun OverflowMenu(
           trailingIcon = {
             Switch(
               checked = autoSynchronizeTranscript,
-              onCheckedChange = {
-                expanded = false
-                onAutoSynchronizeTranscriptClick()
-              },
+              onCheckedChange = null,
               modifier = Modifier.semantics {
                 contentDescription = autoSynchronizeLabel
+                toggleableState = if (autoSynchronizeTranscript) ToggleableState.On else ToggleableState.Off
               },
             )
           },

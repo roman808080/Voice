@@ -14,6 +14,9 @@ import dev.zacsweers.metro.Assisted
 import dev.zacsweers.metro.AssistedFactory
 import dev.zacsweers.metro.AssistedInject
 import kotlinx.coroutines.MainScope
+import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.distinctUntilChangedBy
+import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.launch
 import voice.core.data.Book
 import voice.core.data.BookId
@@ -72,7 +75,7 @@ class BookmarkViewModel(
 
   @Composable
   fun viewState(): BookmarkViewState {
-    val threadsSelected by bookmarkTabStore.data.collectAsState(initial = true)
+    val threadsSelected by bookmarkTabStore.data.collectAsState(initial = false)
     val selectedTab = if (threadsSelected) BookmarkScreenTab.Threads else BookmarkScreenTab.Bookmarks
     val kioskMode = remember { kioskModeFeatureFlag.get() }
     if (kioskMode) return kioskModeViewState(selectedTab)
@@ -86,9 +89,15 @@ class BookmarkViewModel(
       }
     }
     LaunchedEffect(bookId) {
-      val book = repo.get(bookId) ?: return@LaunchedEffect
-      chapters = book.chapters
-      bookmarks = bookmarkRepo.bookmarks(book.content).sortedByDescending { it.addedAt }
+      repo.flow(bookId)
+        .filterNotNull()
+        .distinctUntilChangedBy { it.chapters }
+        .collectLatest { book ->
+          chapters = book.chapters
+          bookmarkRepo.bookmarks(book.content).collect { bookmarks ->
+            this@BookmarkViewModel.bookmarks = bookmarks.sortedByDescending { it.addedAt }
+          }
+        }
     }
     LaunchedEffect(bookId) {
       threadRepo.flow(bookId).collect { threads = it }

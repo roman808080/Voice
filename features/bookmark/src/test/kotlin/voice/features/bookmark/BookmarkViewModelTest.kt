@@ -88,7 +88,7 @@ class BookmarkViewModelTest {
       repo = repo,
       threadRepo = threadRepo,
       bookmarkRepo = mockk<BookmarkRepo> {
-        coEvery { bookmarks(content) } returns emptyList()
+        every { bookmarks(content) } returns flowOf(emptyList())
       },
       currentBookResolver = mockk<CurrentBookResolver>(),
       playerController = mockk<PlayerController>(),
@@ -156,14 +156,13 @@ class BookmarkViewModelTest {
       currentBookStore = MemoryDataStore(content.id),
       bookmarkTabStore = MemoryDataStore(false),
       repo = mockk {
-        coEvery { get(content.id) } returns book
         every { flow(content.id) } returns bookFlow
       },
       threadRepo = mockk {
         every { flow(content.id) } returns flowOf(emptyList())
       },
       bookmarkRepo = mockk {
-        coEvery { bookmarks(content) } returns listOf(bookmark)
+        every { bookmarks(content) } returns flowOf(listOf(bookmark))
       },
       currentBookResolver = mockk(),
       playerController = mockk(),
@@ -177,6 +176,8 @@ class BookmarkViewModelTest {
       viewModel.viewState()
     }.test {
       var state = awaitItem()
+      assertTrue(state.bookmarks.isEmpty())
+      bookFlow.value = book
       while (state.bookmarks.isEmpty()) state = awaitItem()
       assertEquals(expected = "Saved place", actual = state.bookmarks.single().title)
       cancelAndIgnoreRemainingEvents()
