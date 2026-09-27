@@ -80,6 +80,7 @@ class BookPlayViewModelTest {
 
   private val player = mockk<PlayerController>()
     .also {
+      every { it.livePlaybackStateFlow(book.id) } returns flowOf(null)
       every { it.subtitleFlow(book.id) } returns flowOf(SubtitleSnapshot(emptyList(), null))
     }
   private val playStateManager = mockk<PlayStateManager> {
@@ -121,7 +122,6 @@ class BookPlayViewModelTest {
     sleepTimerPreferenceStore = sleepTimerDataStore,
     bookId = book.id,
     dispatcherProvider = DispatcherProvider(scope.coroutineContext, scope.coroutineContext, scope.coroutineContext),
-    experimentalPlaybackPersistenceFeatureFlag = MemoryFeatureFlag(false),
     kioskModeFeatureFlag = MemoryFeatureFlag(false),
   )
 
@@ -271,12 +271,11 @@ class BookPlayViewModelTest {
   }
 
   @Test
-  fun `viewState prefers live playback state when feature flag is enabled`() = scope.runTest {
+  fun `viewState always prefers live playback state`() = scope.runTest {
     val persistedBook = book()
     val livePlaybackFlow = MutableStateFlow<LivePlaybackState?>(null)
     val viewModel = viewModel(
       book = persistedBook,
-      experimentalPlaybackPersistence = true,
       livePlaybackFlow = livePlaybackFlow,
     )
 
@@ -304,7 +303,6 @@ class BookPlayViewModelTest {
   @Test
   fun `viewState falls back to manager play state when live playback is unavailable`() = scope.runTest {
     val viewModel = viewModel(
-      experimentalPlaybackPersistence = true,
       livePlaybackFlow = MutableStateFlow(null),
       playStateFlow = MutableStateFlow(PlayStateManager.PlayState.Playing),
     )
@@ -525,7 +523,6 @@ class BookPlayViewModelTest {
     subtitleReader: SubtitleReader = mockk {
       coEvery { read(any()) } returns emptyList()
     },
-    experimentalPlaybackPersistence: Boolean = false,
     kioskMode: Boolean = false,
     livePlaybackFlow: MutableStateFlow<LivePlaybackState?> = MutableStateFlow(null),
     playStateFlow: MutableStateFlow<PlayStateManager.PlayState> = MutableStateFlow(PlayStateManager.PlayState.Paused),
@@ -560,7 +557,6 @@ class BookPlayViewModelTest {
       sleepTimerPreferenceStore = sleepTimerDataStore,
       bookId = book.id,
       dispatcherProvider = DispatcherProvider(scope.coroutineContext, scope.coroutineContext, scope.coroutineContext),
-      experimentalPlaybackPersistenceFeatureFlag = MemoryFeatureFlag(experimentalPlaybackPersistence),
       kioskModeFeatureFlag = MemoryFeatureFlag(kioskMode),
     )
   }

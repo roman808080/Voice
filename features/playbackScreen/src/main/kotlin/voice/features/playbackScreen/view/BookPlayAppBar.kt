@@ -57,7 +57,7 @@ internal fun BookPlayAppBar(
     ) {
       Icon(
         imageVector = VoiceIcons.CollectionsBookmark,
-        contentDescription = stringResource(id = R.string.bookmark_title),
+        contentDescription = stringResource(id = R.string.bookmark_threads_title),
       )
     }
     IconButton(onClick = onSpeedChangeClick) {

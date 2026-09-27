@@ -1,6 +1,7 @@
 package voice.core.data.repo
 
 import androidx.room.RoomDatabase
+import androidx.room.withTransaction
 import dev.zacsweers.metro.AppScope
 import dev.zacsweers.metro.ContributesBinding
 import kotlinx.coroutines.Dispatchers
@@ -9,7 +10,6 @@ import voice.core.data.Book
 import voice.core.data.BookContent
 import voice.core.data.Bookmark
 import voice.core.data.repo.internals.dao.BookmarkDao
-import voice.core.data.repo.internals.transaction
 import voice.core.data.runForMaxSqlVariableNumber
 import voice.core.logging.api.Logger
 import java.time.Instant
@@ -52,7 +52,7 @@ internal constructor(
 
   override suspend fun bookmarks(book: BookContent): List<Bookmark> {
     val chapters = book.chapters
-    return appDb.transaction {
+    return appDb.withTransaction {
       chapters.runForMaxSqlVariableNumber {
         dao.allForChapters(it)
       }

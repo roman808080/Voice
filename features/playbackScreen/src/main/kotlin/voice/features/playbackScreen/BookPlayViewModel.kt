@@ -31,7 +31,6 @@ import voice.core.data.repo.BookmarkRepo
 import voice.core.data.sleeptimer.SleepTimerPreference
 import voice.core.data.store.CurrentBookStore
 import voice.core.data.store.SleepTimerPreferenceStore
-import voice.core.featureflag.ExperimentalPlaybackPersistenceQualifier
 import voice.core.featureflag.FeatureFlag
 import voice.core.featureflag.KioskModeFeatureFlagQualifier
 import voice.core.logging.api.Logger
@@ -74,8 +73,6 @@ class BookPlayViewModel(
   dispatcherProvider: DispatcherProvider,
   @SleepTimerPreferenceStore
   private val sleepTimerPreferenceStore: DataStore<SleepTimerPreference>,
-  @ExperimentalPlaybackPersistenceQualifier
-  private val experimentalPlaybackPersistenceFeatureFlag: FeatureFlag<Boolean>,
   @KioskModeFeatureFlagQualifier
   private val kioskModeFeatureFlag: FeatureFlag<Boolean>,
   @Assisted
@@ -106,17 +103,12 @@ class BookPlayViewModel(
       bookRepository.flow(bookId).filterNotNull()
     }.collectAsState(initial = null).value ?: return null
 
-    val experimentalPlaybackPersistence = experimentalPlaybackPersistenceFeatureFlag.get()
     val subtitleSnapshot = remember(bookId) {
       player.subtitleFlow(bookId)
     }.collectAsState(null).value
     val subtitles = subtitleSnapshot?.texts.orEmpty()
-    val livePlaybackState = if (experimentalPlaybackPersistence) {
-      remember(bookId) { player.livePlaybackStateFlow(bookId) }
-        .collectAsState(null).value
-    } else {
-      null
-    }
+    val livePlaybackState = remember(bookId) { player.livePlaybackStateFlow(bookId) }
+      .collectAsState(null).value
     val managerPlayState by remember {
       playStateManager.playStateFlow
     }.collectAsState()

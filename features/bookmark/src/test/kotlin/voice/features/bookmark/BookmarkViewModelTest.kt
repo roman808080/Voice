@@ -9,6 +9,7 @@ import io.mockk.coEvery
 import io.mockk.every
 import io.mockk.mockk
 import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.test.runTest
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
@@ -16,6 +17,7 @@ import voice.core.data.Book
 import voice.core.data.BookContent
 import voice.core.data.BookId
 import voice.core.data.BookThread
+import voice.core.data.Bookmark
 import voice.core.data.Chapter
 import voice.core.data.ChapterId
 import voice.core.data.ThreadId
@@ -31,6 +33,7 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
+import kotlin.uuid.Uuid
 
 @RunWith(RobolectricTestRunner::class)
 class BookmarkViewModelTest {
@@ -105,6 +108,77 @@ class BookmarkViewModelTest {
       assertFalse(state.threads.last().active)
       assertEquals(expected = "Research", actual = state.threads.first().title)
       assertTrue(state.threads.first().active)
+      cancelAndIgnoreRemainingEvents()
+    }
+  }
+
+  @Test
+  fun bookmarksLoadBeforeBookFlowEmitsChapters() = runTest {
+    val chapter = Chapter(
+      id = ChapterId("chapter"),
+      name = "Chapter one",
+      duration = 10_000,
+      fileLastModified = Instant.EPOCH,
+      fileSize = 0,
+      markData = emptyList(),
+    )
+    val content = BookContent(
+      id = BookId("book"),
+      playbackSpeed = 1F,
+      skipSilence = false,
+      isActive = true,
+      lastPlayedAt = Instant.EPOCH,
+      author = null,
+      name = "Book",
+      addedAt = Instant.EPOCH,
+      chapters = listOf(chapter.id),
+      currentChapter = chapter.id,
+      positionInChapter = 2_000,
+      cover = null,
+      gain = 0F,
+      genre = null,
+      narrator = null,
+      series = null,
+      part = null,
+    )
+    val book = Book(content, listOf(chapter))
+    val bookmark = Bookmark(
+      bookId = content.id,
+      chapterId = chapter.id,
+      title = "Saved place",
+      time = 2_000,
+      addedAt = Instant.EPOCH,
+      setBySleepTimer = false,
+      id = Bookmark.Id(Uuid.random()),
+    )
+    val bookFlow = MutableStateFlow<Book?>(null)
+    val viewModel = BookmarkViewModel(
+      currentBookStore = MemoryDataStore(content.id),
+      bookmarkTabStore = MemoryDataStore(false),
+      repo = mockk {
+        coEvery { get(content.id) } returns book
+        every { flow(content.id) } returns bookFlow
+      },
+      threadRepo = mockk {
+        every { flow(content.id) } returns flowOf(emptyList())
+      },
+      bookmarkRepo = mockk {
+        coEvery { bookmarks(content) } returns listOf(bookmark)
+      },
+      currentBookResolver = mockk(),
+      playerController = mockk(),
+      navigator = mockk(),
+      context = ApplicationProvider.getApplicationContext<Context>(),
+      kioskModeFeatureFlag = MemoryFeatureFlag(false),
+      bookId = content.id,
+    )
+
+    backgroundScope.launchMolecule(RecompositionMode.Immediate) {
+      viewModel.viewState()
+    }.test {
+      var state = awaitItem()
+      while (state.bookmarks.isEmpty()) state = awaitItem()
+      assertEquals(expected = "Saved place", actual = state.bookmarks.single().title)
       cancelAndIgnoreRemainingEvents()
     }
   }

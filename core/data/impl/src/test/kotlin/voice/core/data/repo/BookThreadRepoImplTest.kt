@@ -2,6 +2,8 @@ package voice.core.data.repo
 
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
+import kotlinx.coroutines.async
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
 import org.junit.After
 import org.junit.Before
@@ -98,6 +100,30 @@ class BookThreadRepoImplTest {
     assertEquals(expected = second.id, actual = reconciled?.activeThreadId)
     assertEquals(expected = secondChapter, actual = reconciled?.currentChapter)
     assertEquals(expected = 200, actual = reconciled?.positionInChapter)
+  }
+
+  @Test
+  fun positionTransactionsKeepInvalidationFlowUsable() = runTest {
+    val chapter = ChapterId("chapter")
+    val content = content(chapter)
+    threadRepo.initializeBook(content)
+    val observed = backgroundScope.async {
+      threadRepo.flow(content.id).first { threads ->
+        threads.single().positionInChapter == 25L
+      }
+    }
+
+    repeat(25) { position ->
+      threadRepo.updatePosition(
+        bookId = content.id,
+        threadId = ThreadId.Default,
+        chapterId = chapter,
+        positionInChapter = position + 1L,
+      )
+    }
+
+    assertEquals(expected = 25L, actual = observed.await().single().positionInChapter)
+    assertEquals(expected = 25L, actual = contentRepo.get(content.id)?.positionInChapter)
   }
 
   private fun content(vararg chapters: ChapterId): BookContent {

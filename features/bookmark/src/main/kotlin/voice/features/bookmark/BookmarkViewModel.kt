@@ -87,6 +87,7 @@ class BookmarkViewModel(
     }
     LaunchedEffect(bookId) {
       val book = repo.get(bookId) ?: return@LaunchedEffect
+      chapters = book.chapters
       bookmarks = bookmarkRepo.bookmarks(book.content).sortedByDescending { it.addedAt }
     }
     LaunchedEffect(bookId) {
@@ -95,7 +96,7 @@ class BookmarkViewModel(
     return BookmarkViewState(
       selectedTab = selectedTab,
       threads = threads.sortedByDescending { it.addedAt }.map(::threadViewState),
-      bookmarks = bookmarks.map(::bookmarkViewState),
+      bookmarks = bookmarks.mapNotNull(::bookmarkViewState),
       shouldScrollTo = shouldScrollTo,
       dialogViewState = dialogViewState,
     )
@@ -112,8 +113,8 @@ class BookmarkViewModel(
     )
   }
 
-  private fun bookmarkViewState(bookmark: Bookmark): BookmarkItemViewState {
-    val currentChapter = chapters.single { it.id == bookmark.chapterId }
+  private fun bookmarkViewState(bookmark: Bookmark): BookmarkItemViewState? {
+    val currentChapter = chapters.firstOrNull { it.id == bookmark.chapterId } ?: return null
     val bookmarkTitle = bookmark.title
     val title: String = when {
       bookmark.setBySleepTimer -> {

@@ -1,6 +1,7 @@
 package voice.core.data.repo
 
 import androidx.room.RoomDatabase
+import androidx.room.withTransaction
 import dev.zacsweers.metro.AppScope
 import dev.zacsweers.metro.ContributesBinding
 import dev.zacsweers.metro.SingleIn
@@ -13,7 +14,6 @@ import voice.core.data.BookThread
 import voice.core.data.ChapterId
 import voice.core.data.ThreadId
 import voice.core.data.repo.internals.dao.BookThreadDao
-import voice.core.data.repo.internals.transaction
 import java.time.Instant
 
 @SingleIn(AppScope::class)
@@ -44,7 +44,7 @@ public class BookThreadRepoImpl(
       positionInChapter = content.positionInChapter,
       addedAt = content.addedAt,
     )
-    appDb.transaction {
+    appDb.withTransaction {
       contentRepo.put(content.copy(activeThreadId = thread.id))
       dao.insert(thread)
     }
@@ -66,7 +66,7 @@ public class BookThreadRepoImpl(
       positionInChapter = positionInChapter,
       addedAt = Instant.now(),
     )
-    appDb.transaction {
+    appDb.withTransaction {
       dao.insert(thread)
       contentRepo.update(bookId) { latest ->
         latest.copy(
@@ -110,7 +110,7 @@ public class BookThreadRepoImpl(
     val remaining = dao.all(bookId).filter { it.id != threadId }
     require(remaining.isNotEmpty()) { "The final thread cannot be deleted" }
     var replacement: BookThread? = null
-    appDb.transaction {
+    appDb.withTransaction {
       dao.delete(bookId, threadId)
       contentRepo.update(bookId) { content ->
         if (content.activeThreadId != threadId) return@update content
@@ -140,7 +140,7 @@ public class BookThreadRepoImpl(
       chapterId = chapterId,
       positionInChapter = positionInChapter,
     )
-    appDb.transaction {
+    appDb.withTransaction {
       dao.insert(updatedThread)
       contentRepo.update(bookId) { latest ->
         if (latest.activeThreadId == threadId) {
@@ -182,7 +182,7 @@ public class BookThreadRepoImpl(
       }
     }
     val active = reconciled.find { it.id == latestContent.activeThreadId } ?: reconciled.first()
-    appDb.transaction {
+    appDb.withTransaction {
       reconciled.forEach { dao.insert(it) }
       contentRepo.update(content.id) { latest ->
         latest.copy(

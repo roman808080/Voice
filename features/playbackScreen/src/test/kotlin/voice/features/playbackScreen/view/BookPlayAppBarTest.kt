@@ -40,6 +40,7 @@ class BookPlayAppBarTest {
 
     composeRule.onNodeWithText("Selected book").assertDoesNotExist()
     composeRule.onNodeWithContentDescription("Close").assertIsDisplayed()
+    composeRule.onNodeWithContentDescription("Threads & bookmarks").assertIsDisplayed()
     composeRule.onNodeWithContentDescription("More").performClick()
     composeRule.onNodeWithText("Automatically follow current subtitle").assertDoesNotExist()
   }
