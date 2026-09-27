@@ -53,6 +53,7 @@ class PlaybackMediaPaneTest {
           transcriptListState = rememberLazyListState(),
           onPlayClick = {},
           onSubtitleClick = { _, position -> selectedPosition = position },
+          onExplainTranscriptPhrase = { _, _ -> },
           modifier = Modifier,
         )
       }
@@ -86,6 +87,7 @@ class PlaybackMediaPaneTest {
           transcriptListState = rememberLazyListState(),
           onPlayClick = {},
           onSubtitleClick = { _, position -> selectedPosition = position },
+          onExplainTranscriptPhrase = { _, _ -> },
         )
       }
     }
@@ -117,6 +119,7 @@ class PlaybackMediaPaneTest {
             transcriptListState = listState,
             onPlayClick = {},
             onSubtitleClick = { _, _ -> },
+            onExplainTranscriptPhrase = { _, _ -> },
           )
         }
       }
@@ -152,6 +155,7 @@ class PlaybackMediaPaneTest {
             transcriptListState = listState,
             onPlayClick = {},
             onSubtitleClick = { _, _ -> },
+            onExplainTranscriptPhrase = { _, _ -> },
           )
         }
       }

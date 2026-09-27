@@ -199,6 +199,12 @@
     <string name="playback.transcript.auto_synchronize">Automatically follow current subtitle</string>
     <!-- Accessibility description for the subtitle active at the current playback position. -->
     <string name="playback.transcript.current">Current subtitle</string>
+    <!-- Text-selection action for asking another app to explain a transcript phrase. -->
+    <string name="playback.transcript.explain.action">Explain with...</string>
+    <!-- Title of the Android app chooser used to explain a transcript phrase. -->
+    <string name="playback.transcript.explain.chooser_title">Explain with</string>
+    <!-- Prompt shared with another app to explain selected transcript text. -->
+    <string name="playback.transcript.explain.prompt">Explain the selected phrase in the context of this audiobook transcript. Include its meaning and any relevant idiom or grammar.\n\nSelected phrase:\n%1$s\n\nTranscript context:\n%2$s</string>
     <!-- Menu and dialog title for changing volume gain. -->
     <string name="playback.option.volume_boost">Volume boost</string>
     <!-- Title and content description for playback-speed controls. -->

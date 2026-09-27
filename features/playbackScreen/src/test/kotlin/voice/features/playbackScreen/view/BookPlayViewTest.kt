@@ -50,6 +50,7 @@ class BookPlayViewTest {
           onCloseClick = {},
           onCurrentChapterClick = {},
           onSubtitleClick = { _, _ -> },
+          onExplainTranscriptPhrase = { _, _ -> },
           onAutoSynchronizeTranscriptClick = {
             viewState = viewState.copy(autoSynchronizeTranscript = !viewState.autoSynchronizeTranscript)
           },
@@ -91,6 +92,7 @@ class BookPlayViewTest {
           onCloseClick = {},
           onCurrentChapterClick = {},
           onSubtitleClick = { _, _ -> },
+          onExplainTranscriptPhrase = { _, _ -> },
           onAutoSynchronizeTranscriptClick = {},
           onShowTranscriptChange = {},
           useLandscapeLayout = false,

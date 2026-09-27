@@ -10,6 +10,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.retain.retain
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.stringResource
 import androidx.navigation3.runtime.NavEntry
@@ -40,6 +41,8 @@ fun BookPlayScreen(bookId: BookId) {
   val bookmarkAddedMessage = stringResource(StringsR.string.bookmark_added_snackbar)
   val batteryOptimizationMessage = stringResource(StringsR.string.playback_battery_optimization_rationale)
   val batteryOptimizationAction = stringResource(StringsR.string.playback_battery_optimization_action)
+  val explainChooserTitle = stringResource(StringsR.string.playback_transcript_explain_chooser_title)
+  val context = LocalContext.current
   LaunchedEffect(viewModel) {
     viewModel.viewEffects.collect { viewEffect ->
       when (viewEffect) {
@@ -77,6 +80,14 @@ fun BookPlayScreen(bookId: BookId) {
     onSkipToPrevious = viewModel::previous,
     onCurrentChapterClick = viewModel::onCurrentChapterClick,
     onSubtitleClick = viewModel::seekToSubtitle,
+    onExplainTranscriptPhrase = { selectedPhrase, transcriptCue ->
+      val prompt = context.getString(
+        StringsR.string.playback_transcript_explain_prompt,
+        selectedPhrase,
+        transcriptCue,
+      )
+      context.startActivity(transcriptExplanationIntent(prompt, explainChooserTitle))
+    },
     onAutoSynchronizeTranscriptClick = viewModel::toggleAutoSynchronizeTranscript,
     onShowTranscriptChange = viewModel::onShowTranscriptChange,
     useLandscapeLayout = LocalConfiguration.current.orientation == ORIENTATION_LANDSCAPE,

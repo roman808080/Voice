@@ -32,6 +32,7 @@ internal fun BookPlayContent(
   onSkipToPrevious: () -> Unit,
   onCurrentChapterClick: () -> Unit,
   onSubtitleClick: (ChapterId, Duration) -> Unit,
+  onExplainTranscriptPhrase: (String, String) -> Unit,
   showTranscript: Boolean,
   onShowTranscriptChange: (Boolean) -> Unit,
   autoSynchronizeTranscript: Boolean,
@@ -57,6 +58,7 @@ internal fun BookPlayContent(
         autoSynchronizeTranscript = autoSynchronizeTranscript,
         transcriptListState = transcriptListState,
         onSubtitleClick = onSubtitleClick,
+        onExplainTranscriptPhrase = onExplainTranscriptPhrase,
         modifier = Modifier
           .fillMaxHeight()
           .weight(1F)
@@ -103,6 +105,7 @@ internal fun BookPlayContent(
         autoSynchronizeTranscript = autoSynchronizeTranscript,
         transcriptListState = transcriptListState,
         onSubtitleClick = onSubtitleClick,
+        onExplainTranscriptPhrase = onExplainTranscriptPhrase,
         modifier = Modifier
           .fillMaxWidth()
           .weight(1F)

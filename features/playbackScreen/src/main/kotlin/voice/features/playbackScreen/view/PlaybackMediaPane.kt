@@ -12,7 +12,10 @@ import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.contextmenu.builder.item
+import androidx.compose.foundation.text.contextmenu.modifier.appendTextContextMenuComponents
 import androidx.compose.foundation.text.selection.SelectionContainer
+import androidx.compose.foundation.text.selection.rememberSelectionState
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
@@ -54,6 +57,7 @@ internal fun PlaybackMediaPane(
   transcriptListState: LazyListState,
   onPlayClick: () -> Unit,
   onSubtitleClick: (ChapterId, Duration) -> Unit,
+  onExplainTranscriptPhrase: (String, String) -> Unit,
   modifier: Modifier = Modifier,
 ) {
   val transcriptVisible = showTranscript && viewState.transcriptCues.isNotEmpty()
@@ -116,6 +120,7 @@ internal fun PlaybackMediaPane(
         activeCueIndices = viewState.activeTranscriptCueIndices,
         state = transcriptListState,
         onSubtitleClick = onSubtitleClick,
+        onExplainTranscriptPhrase = onExplainTranscriptPhrase,
         modifier = Modifier
           .fillMaxWidth()
           .weight(1F),
@@ -141,9 +146,11 @@ private fun TranscriptList(
   activeCueIndices: Set<Int>,
   state: LazyListState,
   onSubtitleClick: (ChapterId, Duration) -> Unit,
+  onExplainTranscriptPhrase: (String, String) -> Unit,
   modifier: Modifier = Modifier,
 ) {
   val currentDescription = stringResource(StringsR.string.playback_transcript_current)
+  val explainLabel = stringResource(StringsR.string.playback_transcript_explain_action)
   LazyColumn(
     modifier = modifier,
     state = state,
@@ -172,13 +179,32 @@ private fun TranscriptList(
           Text(text = cue.timestamp)
         },
       ) {
-        SelectionContainer {
+        val selectionState = rememberSelectionState()
+        SelectionContainer(
+          state = selectionState,
+          modifier = Modifier.appendTextContextMenuComponents {
+            separator()
+            item(
+              key = ExplainTranscriptSelectionKey,
+              label = explainLabel,
+            ) {
+              val selectedText = selectionState.selectedTexts.joinToString(separator = "") { it.text }
+              close()
+              selectionState.clear()
+              if (selectedText.isNotBlank()) {
+                onExplainTranscriptPhrase(selectedText, cue.text)
+              }
+            }
+          },
+        ) {
           Text(text = cue.text)
         }
       }
     }
   }
 }
+
+private data object ExplainTranscriptSelectionKey
 
 @Preview(name = "Transcript portrait", widthDp = 400, heightDp = 700)
 @Preview(name = "Transcript landscape", widthDp = 400, heightDp = 360)
@@ -232,6 +258,7 @@ private fun TranscriptPreview() {
       transcriptListState = rememberLazyListState(),
       onPlayClick = {},
       onSubtitleClick = { _, _ -> },
+      onExplainTranscriptPhrase = { _, _ -> },
       modifier = Modifier.fillMaxSize(),
     )
   }
