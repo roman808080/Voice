@@ -46,6 +46,34 @@ class DataBaseMigratorTest {
   }
 
   @Test
+  fun migrate60AddsTranscriptPreferenceDefaults() {
+    val dbName = "migrate60"
+    val db = helper.createDatabase(dbName, 60)
+    db.execSQL(
+      """
+      INSERT INTO content2 (
+        id, playbackSpeed, skipSilence, isActive, lastPlayedAt, name, addedAt, chapters, currentChapter, positionInChapter
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      """.trimIndent(),
+      arrayOf<Any>("book", 1F, 0, 1, "1970-01-01T00:00:00Z", "Book", "1970-01-01T00:00:00Z", "[\"chapter\"]", "chapter", 0),
+    )
+    db.close()
+
+    val migratedDb = helper.runMigrationsAndValidate(
+      dbName,
+      AppDb.VERSION,
+      true,
+      *allMigrations(),
+    )
+    val cursor = migratedDb.query("SELECT autoSynchronizeTranscript, showTranscript FROM content2 WHERE id = 'book'")
+    cursor.moveToFirst()
+
+    assertEquals(expected = 1, actual = cursor.getInt("autoSynchronizeTranscript"))
+    assertEquals(expected = 0, actual = cursor.getInt("showTranscript"))
+    cursor.close()
+  }
+
+  @Test
   fun migrate44() {
     val dbName = "testDb"
     val db = helper.createDatabase(dbName, 44)

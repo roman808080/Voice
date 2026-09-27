@@ -54,5 +54,7 @@ class BookPlayAppBarTest {
     playing = true,
     cover = null,
     skipSilence = false,
+    autoSynchronizeTranscript = true,
+    showTranscript = false,
   )
 }

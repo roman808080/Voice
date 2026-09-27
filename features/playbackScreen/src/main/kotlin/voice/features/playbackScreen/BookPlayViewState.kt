@@ -17,6 +17,8 @@ data class BookPlayViewState(
   val playing: Boolean,
   val cover: String?,
   val skipSilence: Boolean,
+  val autoSynchronizeTranscript: Boolean,
+  val showTranscript: Boolean,
   val subtitles: List<String> = emptyList(),
   val transcriptCues: List<TranscriptCue> = emptyList(),
   val activeTranscriptCueIndices: Set<Int> = emptySet(),

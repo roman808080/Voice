@@ -174,6 +174,8 @@ class BookPlayViewModel(
       playedTime = positionInCurrentMark.milliseconds,
       cover = book.content.coverUrl,
       skipSilence = book.content.skipSilence,
+      autoSynchronizeTranscript = book.content.autoSynchronizeTranscript,
+      showTranscript = book.content.showTranscript,
       subtitles = subtitles,
       transcriptCues = transcriptCues,
       activeTranscriptCueIndices = transcriptPosition.activeCueIndices,
@@ -195,6 +197,8 @@ class BookPlayViewModel(
       playedTime = 10.hours + 24.minutes,
       cover = book.coverUrl,
       skipSilence = false,
+      autoSynchronizeTranscript = true,
+      showTranscript = false,
     )
   }
 
@@ -413,6 +417,22 @@ class BookPlayViewModel(
     scope.launch {
       val skipSilence = currentBook()?.content?.skipSilence ?: return@launch
       player.skipSilence(!skipSilence)
+    }
+  }
+
+  fun toggleAutoSynchronizeTranscript() {
+    scope.launch {
+      bookRepository.updateBook(bookId) {
+        it.copy(autoSynchronizeTranscript = !it.autoSynchronizeTranscript)
+      }
+    }
+  }
+
+  fun onShowTranscriptChange(showTranscript: Boolean) {
+    scope.launch {
+      bookRepository.updateBook(bookId) {
+        it.copy(showTranscript = showTranscript)
+      }
     }
   }
 

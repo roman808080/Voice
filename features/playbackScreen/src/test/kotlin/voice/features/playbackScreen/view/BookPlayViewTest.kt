@@ -1,8 +1,12 @@
 package voice.features.playbackScreen.view
 
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsOff
 import androidx.compose.ui.test.assertIsOn
-import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
@@ -24,11 +28,12 @@ class BookPlayViewTest {
   val composeRule = createComposeRule()
 
   @Test
-  fun `auto synchronization is enabled by default and can be toggled from overflow menu`() {
+  fun `auto synchronization displays persisted state and can be toggled from overflow menu`() {
+    var viewState by mutableStateOf(viewState())
     composeRule.setContent {
       VoiceTheme {
         BookPlayView(
-          viewState = viewState(),
+          viewState = viewState,
           bookId = BookId("book"),
           onPlayClick = {},
           onRewindClick = {},
@@ -45,6 +50,10 @@ class BookPlayViewTest {
           onCloseClick = {},
           onCurrentChapterClick = {},
           onSubtitleClick = { _, _ -> },
+          onAutoSynchronizeTranscriptClick = {
+            viewState = viewState.copy(autoSynchronizeTranscript = !viewState.autoSynchronizeTranscript)
+          },
+          onShowTranscriptChange = {},
           useLandscapeLayout = false,
         )
       }
@@ -60,7 +69,43 @@ class BookPlayViewTest {
     composeRule.onNodeWithContentDescription("Automatically follow current subtitle").assertIsOff()
   }
 
-  private fun viewState() = BookPlayViewState(
+  @Test
+  fun `persisted transcript selection is displayed`() {
+    composeRule.setContent {
+      VoiceTheme {
+        BookPlayView(
+          viewState = viewState(showTranscript = true),
+          bookId = BookId("book"),
+          onPlayClick = {},
+          onRewindClick = {},
+          onFastForwardClick = {},
+          onSeek = {},
+          onSleepTimerClick = {},
+          onBookmarkClick = {},
+          onBookmarkLongClick = {},
+          onSpeedChangeClick = {},
+          onSkipSilenceClick = {},
+          onVolumeBoostClick = {},
+          onSkipToNext = {},
+          onSkipToPrevious = {},
+          onCloseClick = {},
+          onCurrentChapterClick = {},
+          onSubtitleClick = { _, _ -> },
+          onAutoSynchronizeTranscriptClick = {},
+          onShowTranscriptChange = {},
+          useLandscapeLayout = false,
+        )
+      }
+    }
+
+    composeRule.onNodeWithText("Transcript").assertIsSelected()
+    composeRule.onNodeWithText("Current cue").assertIsDisplayed()
+  }
+
+  private fun viewState(
+    autoSynchronizeTranscript: Boolean = true,
+    showTranscript: Boolean = false,
+  ) = BookPlayViewState(
     chapterName = "Chapter",
     showPreviousNextButtons = true,
     title = "Book",
@@ -70,6 +115,8 @@ class BookPlayViewTest {
     playing = true,
     cover = null,
     skipSilence = false,
+    autoSynchronizeTranscript = autoSynchronizeTranscript,
+    showTranscript = showTranscript,
     transcriptCues = listOf(
       BookPlayViewState.TranscriptCue(
         chapterId = ChapterId("chapter"),

@@ -197,6 +197,8 @@ private fun TranscriptPreview() {
         playing = true,
         cover = null,
         skipSilence = false,
+        autoSynchronizeTranscript = false,
+        showTranscript = true,
         transcriptCues = listOf(
           BookPlayViewState.TranscriptCue(
             chapterId = ChapterId("chapter"),

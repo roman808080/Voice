@@ -196,6 +196,8 @@ class PlaybackMediaPaneTest {
     playing = true,
     cover = null,
     skipSilence = false,
+    autoSynchronizeTranscript = false,
+    showTranscript = false,
     transcriptCues = listOf(
       BookPlayViewState.TranscriptCue(
         chapterId = ChapterId("chapter"),
@@ -227,6 +229,8 @@ class PlaybackMediaPaneTest {
     playing = true,
     cover = null,
     skipSilence = false,
+    autoSynchronizeTranscript = true,
+    showTranscript = true,
     transcriptCues = (0 until 30).map { index ->
       BookPlayViewState.TranscriptCue(
         chapterId = ChapterId("chapter"),

@@ -28,6 +28,10 @@ public data class BookContent(
   val narrator: String?,
   val series: String?,
   val part: String?,
+  @ColumnInfo(defaultValue = "1")
+  val autoSynchronizeTranscript: Boolean = true,
+  @ColumnInfo(defaultValue = "0")
+  val showTranscript: Boolean = false,
 ) {
 
   @Ignore

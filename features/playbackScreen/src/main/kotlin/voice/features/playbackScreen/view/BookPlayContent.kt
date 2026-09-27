@@ -12,10 +12,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import voice.core.data.BookId
@@ -36,10 +32,11 @@ internal fun BookPlayContent(
   onSkipToPrevious: () -> Unit,
   onCurrentChapterClick: () -> Unit,
   onSubtitleClick: (ChapterId, Duration) -> Unit,
+  showTranscript: Boolean,
+  onShowTranscriptChange: (Boolean) -> Unit,
   autoSynchronizeTranscript: Boolean,
   useLandscapeLayout: Boolean,
 ) {
-  var showTranscript by rememberSaveable { mutableStateOf(false) }
   val transcriptListState = rememberLazyListState()
   val transcriptVisible = showTranscript && viewState.transcriptCues.isNotEmpty()
   val currentCueIndex = viewState.currentTranscriptCueIndex
@@ -56,7 +53,7 @@ internal fun BookPlayContent(
         onPlayClick = onPlayClick,
         viewState = viewState,
         showTranscript = showTranscript,
-        onShowTranscriptChange = { showTranscript = it },
+        onShowTranscriptChange = onShowTranscriptChange,
         autoSynchronizeTranscript = autoSynchronizeTranscript,
         transcriptListState = transcriptListState,
         onSubtitleClick = onSubtitleClick,
@@ -102,7 +99,7 @@ internal fun BookPlayContent(
         onPlayClick = onPlayClick,
         viewState = viewState,
         showTranscript = showTranscript,
-        onShowTranscriptChange = { showTranscript = it },
+        onShowTranscriptChange = onShowTranscriptChange,
         autoSynchronizeTranscript = autoSynchronizeTranscript,
         transcriptListState = transcriptListState,
         onSubtitleClick = onSubtitleClick,

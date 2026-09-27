@@ -4,11 +4,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.tooling.preview.PreviewParameter
 import androidx.compose.ui.tooling.preview.PreviewParameterProvider
@@ -39,9 +35,10 @@ internal fun BookPlayView(
   onCloseClick: () -> Unit,
   onCurrentChapterClick: () -> Unit,
   onSubtitleClick: (ChapterId, Duration) -> Unit,
+  onAutoSynchronizeTranscriptClick: () -> Unit,
+  onShowTranscriptChange: (Boolean) -> Unit,
   snackbarHostState: SnackbarHostState = remember { SnackbarHostState() },
 ) {
-  var autoSynchronizeTranscript by rememberSaveable { mutableStateOf(true) }
   Scaffold(
     snackbarHost = {
       SnackbarHost(hostState = snackbarHostState)
@@ -55,10 +52,8 @@ internal fun BookPlayView(
         onSpeedChangeClick = onSpeedChangeClick,
         onSkipSilenceClick = onSkipSilenceClick,
         onVolumeBoostClick = onVolumeBoostClick,
-        autoSynchronizeTranscript = autoSynchronizeTranscript,
-        onAutoSynchronizeTranscriptClick = {
-          autoSynchronizeTranscript = !autoSynchronizeTranscript
-        },
+        autoSynchronizeTranscript = viewState.autoSynchronizeTranscript,
+        onAutoSynchronizeTranscriptClick = onAutoSynchronizeTranscriptClick,
         onCloseClick = onCloseClick,
       )
     },
@@ -75,7 +70,9 @@ internal fun BookPlayView(
         onSkipToPrevious = onSkipToPrevious,
         onCurrentChapterClick = onCurrentChapterClick,
         onSubtitleClick = onSubtitleClick,
-        autoSynchronizeTranscript = autoSynchronizeTranscript,
+        showTranscript = viewState.showTranscript,
+        onShowTranscriptChange = onShowTranscriptChange,
+        autoSynchronizeTranscript = viewState.autoSynchronizeTranscript,
         useLandscapeLayout = useLandscapeLayout,
       )
     },
@@ -107,6 +104,8 @@ private fun BookPlayPreview(
       onCloseClick = {},
       onCurrentChapterClick = {},
       onSubtitleClick = { _, _ -> },
+      onAutoSynchronizeTranscriptClick = {},
+      onShowTranscriptChange = {},
       useLandscapeLayout = false,
     )
   }
@@ -122,6 +121,8 @@ private class BookPlayViewStatePreviewProvider : PreviewParameterProvider<BookPl
       playedTime = 3.minutes,
       playing = true,
       skipSilence = true,
+      autoSynchronizeTranscript = true,
+      showTranscript = false,
       sleepTimerState = BookPlayViewState.SleepTimerViewState.Disabled,
       title = "Das Ende der Welt",
     )

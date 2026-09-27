@@ -336,6 +336,29 @@ class BookPlayViewModelTest {
   }
 
   @Test
+  fun `transcript preferences survive view model recreation`() = scope.runTest {
+    val bookFlow = MutableStateFlow(book)
+    val viewModel = viewModel(bookFlow = bookFlow)
+
+    viewModel.toggleAutoSynchronizeTranscript()
+    viewModel.onShowTranscriptChange(true)
+    yield()
+
+    assertEquals(expected = false, actual = bookFlow.value.content.autoSynchronizeTranscript)
+    assertEquals(expected = true, actual = bookFlow.value.content.showTranscript)
+
+    val reopenedViewModel = viewModel(book = bookFlow.value, bookFlow = bookFlow)
+    backgroundScope.launchMolecule(RecompositionMode.Immediate) {
+      reopenedViewModel.viewState()
+    }.test {
+      assertEquals(expected = null, actual = awaitItem())
+      val state = awaitItem()!!
+      assertEquals(expected = false, actual = state.autoSynchronizeTranscript)
+      assertEquals(expected = true, actual = state.showTranscript)
+    }
+  }
+
+  @Test
   fun `transcript contains current section and locates active cue`() {
     val chapterId = ChapterId("chapter")
     val cues = listOf(
@@ -512,6 +535,10 @@ class BookPlayViewModelTest {
       bookRepository = mockk {
         coEvery { get(book.id) } returns book
         every { flow(book.id) } returns bookFlow
+        coEvery { updateBook(book.id, any()) } coAnswers {
+          val update = secondArg<(BookContent) -> BookContent>()
+          bookFlow.value = bookFlow.value.copy(content = update(bookFlow.value.content))
+        }
       },
       currentBookResolver = currentBookResolver,
       player = mockk {
