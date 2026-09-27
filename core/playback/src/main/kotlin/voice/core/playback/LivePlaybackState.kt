@@ -5,10 +5,12 @@ import androidx.media3.session.MediaController
 import voice.core.data.Book
 import voice.core.data.BookId
 import voice.core.data.ChapterId
+import voice.core.data.ThreadId
 import voice.core.playback.session.bookId
 import voice.core.playback.session.positionInChapter
 import voice.core.playback.session.realChapterId
 import voice.core.playback.session.toMediaIdOrNull
+import voice.core.playback.session.threadId
 
 data class LivePlaybackState(
   val bookId: BookId,
@@ -16,6 +18,7 @@ data class LivePlaybackState(
   val positionMs: Long,
   val isPlaying: Boolean,
   val playbackSpeed: Float,
+  val threadId: ThreadId? = null,
 )
 
 internal fun MediaController.livePlaybackStateSnapshot(bookId: BookId? = null): LivePlaybackState? {
@@ -33,11 +36,15 @@ internal fun MediaController.livePlaybackStateSnapshot(bookId: BookId? = null): 
     positionMs = positionInChapter,
     isPlaying = isPlaying,
     playbackSpeed = playbackParameters.speed,
+    threadId = mediaId.threadId,
   )
 }
 
 fun Book.overlay(livePlaybackState: LivePlaybackState): Book {
-  return if (livePlaybackState.bookId == id) {
+  return if (
+    livePlaybackState.bookId == id &&
+    (livePlaybackState.threadId == null || livePlaybackState.threadId == content.activeThreadId)
+  ) {
     update {
       it.copy(
         currentChapter = livePlaybackState.chapterId,

@@ -6,7 +6,7 @@ import voice.core.data.BookContent
 import voice.core.data.BookId
 import voice.core.data.Chapter
 import voice.core.data.repo.BookContentRepo
-import voice.core.data.repo.getOrPut
+import voice.core.data.repo.BookThreadRepo
 import voice.core.data.toUri
 import voice.core.documentfile.CachedDocumentFile
 import voice.core.documentfile.CachedDocumentFileFactory
@@ -16,6 +16,7 @@ import java.time.Instant
 @Inject
 internal class BookParser(
   private val contentRepo: BookContentRepo,
+  private val threadRepo: BookThreadRepo,
   private val mediaAnalyzer: MediaAnalyzer,
   private val fileFactory: CachedDocumentFileFactory,
 ) {
@@ -26,10 +27,15 @@ internal class BookParser(
     firstChapterMetadata: Metadata?,
   ): BookContent {
     val id = BookId(file.uri)
-    return contentRepo.getOrPut(id) {
-      val analyzed = firstChapterMetadata
-        ?: mediaAnalyzer.analyze(fileFactory.create(chapters.first().id.toUri()))
-      parse(chapters, id, analyzed, file)
+    val existing = contentRepo.get(id)
+    if (existing != null) {
+      threadRepo.initializeBook(existing)
+      return existing
+    }
+    val analyzed = firstChapterMetadata
+      ?: mediaAnalyzer.analyze(fileFactory.create(chapters.first().id.toUri()))
+    return parse(chapters, id, analyzed, file).also {
+      threadRepo.initializeBook(it)
     }
   }
 

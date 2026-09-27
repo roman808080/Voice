@@ -32,6 +32,8 @@ public data class BookContent(
   val autoSynchronizeTranscript: Boolean = true,
   @ColumnInfo(defaultValue = "0")
   val showTranscript: Boolean = false,
+  @ColumnInfo(defaultValue = "'default'")
+  val activeThreadId: ThreadId = ThreadId.Default,
 ) {
 
   @Ignore

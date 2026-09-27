@@ -15,6 +15,11 @@ public interface BookContentRepo {
   public suspend fun setAllInactiveExcept(ids: List<BookId>)
 
   public suspend fun put(content: BookContent)
+
+  public suspend fun update(
+    id: BookId,
+    update: (BookContent) -> BookContent,
+  )
 }
 
 public suspend inline fun BookContentRepo.getOrPut(

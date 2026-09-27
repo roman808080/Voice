@@ -16,6 +16,7 @@ import voice.core.data.BookComparator
 import voice.core.data.BookContent
 import voice.core.data.BookId
 import voice.core.data.Chapter
+import voice.core.data.ThreadId
 import voice.core.data.durationMs
 import voice.core.data.repo.BookContentRepo
 import voice.core.data.repo.BookRepository
@@ -57,12 +58,12 @@ class MediaItemProvider(
     return when (mediaId) {
       MediaId.Root -> root()
       is MediaId.Book -> {
-        bookRepository.get(mediaId.id)?.let(::mediaItem)
+        bookRepository.get(mediaId.id)?.let { mediaItem(it, mediaId.threadId ?: it.content.activeThreadId) }
       }
       is MediaId.Chapter -> {
         val content = contentRepo.get(mediaId.bookId) ?: return null
         chapterRepo.get(mediaId.chapterId)?.let {
-          mediaItem(it, content)
+          mediaItem(it, content, mediaId.threadId ?: content.activeThreadId)
         }
       }
       is MediaId.ChapterMark -> {
@@ -73,6 +74,7 @@ class MediaItemProvider(
           playbackItem = PlaybackItem(
             index = 0,
             bookId = mediaId.bookId,
+            threadId = mediaId.threadId ?: content.activeThreadId,
             chapter = chapter,
             markIndex = mediaId.markIndex,
             mark = mark,
@@ -84,9 +86,12 @@ class MediaItemProvider(
     }
   }
 
-  fun mediaItemsWithStartPosition(book: Book): MediaItemsWithStartPosition {
+  fun mediaItemsWithStartPosition(
+    book: Book,
+    threadId: ThreadId = book.content.activeThreadId,
+  ): MediaItemsWithStartPosition {
     return MediaItemsWithStartPosition(
-      listOf(mediaItem(book)),
+      listOf(mediaItem(book, threadId)),
       C.INDEX_UNSET,
       C.TIME_UNSET,
     )
@@ -96,7 +101,7 @@ class MediaItemProvider(
     return when (val mediaId = id.toMediaIdOrNull()) {
       is MediaId.Book -> {
         val book = bookRepository.get(mediaId.id) ?: return null
-        mediaItemsWithStartPosition(book)
+        mediaItemsWithStartPosition(book, mediaId.threadId ?: book.content.activeThreadId)
       }
       is MediaId.Chapter, is MediaId.ChapterMark, MediaId.Root, MediaId.Recent, null -> null
     }
@@ -133,9 +138,14 @@ class MediaItemProvider(
     }
   }
 
-  fun mediaItem(book: Book): MediaItem = MediaItem(
+  fun mediaItem(book: Book): MediaItem = mediaItem(book, book.content.activeThreadId)
+
+  private fun mediaItem(
+    book: Book,
+    threadId: ThreadId,
+  ): MediaItem = MediaItem(
     title = book.content.name,
-    mediaId = MediaId.Book(book.id),
+    mediaId = MediaId.Book(book.id, threadId),
     browsable = false,
     isPlayable = true,
     imageUri = book.content.cover?.toProvidedUri(),
@@ -145,9 +155,14 @@ class MediaItemProvider(
   private fun mediaItem(
     chapter: Chapter,
     content: BookContent,
+    threadId: ThreadId = content.activeThreadId,
   ) = MediaItem(
     title = chapter.name ?: chapter.id.value,
-    mediaId = MediaId.Chapter(bookId = content.id, chapterId = chapter.id),
+    mediaId = MediaId.Chapter(
+      bookId = content.id,
+      chapterId = chapter.id,
+      threadId = threadId,
+    ),
     browsable = false,
     isPlayable = true,
     sourceUri = chapter.id.toUri(),

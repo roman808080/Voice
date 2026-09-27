@@ -1,8 +1,10 @@
 package voice.core.playback.session
 
 import voice.core.data.Chapter
+import voice.core.data.BookId
 import voice.core.data.ChapterId
 import voice.core.data.MarkData
+import voice.core.data.ThreadId
 import voice.core.playback.session.search.book
 import java.time.Instant
 import kotlin.test.Test
@@ -28,6 +30,7 @@ class PlaybackItemsTest {
     assertEquals(expected = 1, actual = playbackItem?.index)
     assertEquals(expected = 3_000, actual = playbackItem?.positionInMediaItem(15_000))
     assertEquals(expected = 15_000, actual = playbackItem?.mediaId?.positionInChapter(3_000))
+    assertEquals(expected = ThreadId.Default, actual = playbackItem?.mediaId?.threadId)
   }
 
   @Test
@@ -70,6 +73,16 @@ class PlaybackItemsTest {
     assertEquals(expected = 3, actual = playbackItem?.index)
     assertEquals(expected = secondChapter.id, actual = playbackItem?.mediaId?.realChapterId)
     assertEquals(expected = 1_000, actual = playbackItem?.positionInMediaItem(8_000))
+  }
+
+  @Test
+  fun `legacy media id keeps writing to the migrated default thread`() {
+    val mediaId = MediaId.Chapter(
+      bookId = BookId("book"),
+      chapterId = ChapterId("chapter"),
+    )
+
+    assertEquals(expected = ThreadId.Default, actual = mediaId.originatingThreadId)
   }
 
   private fun chapter(

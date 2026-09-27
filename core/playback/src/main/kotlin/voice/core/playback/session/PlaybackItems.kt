@@ -5,12 +5,14 @@ import voice.core.data.BookId
 import voice.core.data.Chapter
 import voice.core.data.ChapterId
 import voice.core.data.ChapterMark
+import voice.core.data.ThreadId
 import voice.core.data.durationMs
 import voice.core.data.markForPosition
 
 internal data class PlaybackItem(
   val index: Int,
   val bookId: BookId,
+  val threadId: ThreadId,
   val chapter: Chapter,
   val markIndex: Int,
   val mark: ChapterMark,
@@ -22,6 +24,7 @@ internal data class PlaybackItem(
       markIndex = markIndex,
       startMs = mark.startMs,
       endMs = mark.endMs,
+      threadId = threadId,
     )
 }
 
@@ -32,6 +35,7 @@ internal fun Book.playbackItems(): List<PlaybackItem> {
       PlaybackItem(
         index = index++,
         bookId = id,
+        threadId = content.activeThreadId,
         chapter = chapter,
         markIndex = markIndex,
         mark = mark,
@@ -70,6 +74,19 @@ internal val MediaId.realChapterId: ChapterId?
     MediaId.Root,
     -> null
   }
+
+internal val MediaId.threadId: ThreadId?
+  get() = when (this) {
+    is MediaId.Book -> threadId
+    is MediaId.Chapter -> threadId
+    is MediaId.ChapterMark -> threadId
+    MediaId.Recent,
+    MediaId.Root,
+    -> null
+  }
+
+internal val MediaId.originatingThreadId: ThreadId
+  get() = threadId ?: ThreadId.Default
 
 internal fun MediaId.positionInChapter(positionInCurrentMediaItemMs: Long): Long? {
   return when (this) {

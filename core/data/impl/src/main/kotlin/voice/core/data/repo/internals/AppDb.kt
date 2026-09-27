@@ -6,11 +6,13 @@ import androidx.room.RoomDatabase
 import androidx.room.TypeConverters
 import voice.core.data.BookContent
 import voice.core.data.Bookmark
+import voice.core.data.BookThread
 import voice.core.data.Chapter
 import voice.core.data.RecentBookSearch
 import voice.core.data.repo.internals.dao.BookContentDao
 import voice.core.data.repo.internals.dao.BookSearchFts
 import voice.core.data.repo.internals.dao.BookmarkDao
+import voice.core.data.repo.internals.dao.BookThreadDao
 import voice.core.data.repo.internals.dao.ChapterDao
 import voice.core.data.repo.internals.dao.RecentBookSearchDao
 import voice.core.data.repo.internals.migrations.Migration56
@@ -20,6 +22,7 @@ import voice.core.data.repo.internals.migrations.Migration56
     Chapter::class,
     BookContent::class,
     Bookmark::class,
+    BookThread::class,
     BookSearchFts::class,
     RecentBookSearch::class,
   ],
@@ -42,11 +45,12 @@ public abstract class AppDb : RoomDatabase() {
   public abstract fun chapterDao(): ChapterDao
   public abstract fun bookContentDao(): BookContentDao
   public abstract fun bookmarkDao(): BookmarkDao
+  public abstract fun bookThreadDao(): BookThreadDao
 
   public abstract fun recentBookSearchDao(): RecentBookSearchDao
 
   internal companion object {
-    const val VERSION = 61
+    const val VERSION = 62
     const val DATABASE_NAME = "autoBookDB"
   }
 }

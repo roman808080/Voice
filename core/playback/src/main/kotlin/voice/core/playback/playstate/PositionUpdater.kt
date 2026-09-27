@@ -11,12 +11,13 @@ import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
-import voice.core.data.repo.BookRepository
+import voice.core.data.repo.BookThreadRepo
 import voice.core.featureflag.ExperimentalPlaybackPersistenceQualifier
 import voice.core.featureflag.FeatureFlag
 import voice.core.logging.api.Logger
 import voice.core.playback.di.PlaybackScope
 import voice.core.playback.session.bookId
+import voice.core.playback.session.originatingThreadId
 import voice.core.playback.session.positionInChapter
 import voice.core.playback.session.realChapterId
 import voice.core.playback.session.toMediaIdOrNull
@@ -27,7 +28,7 @@ import kotlin.time.Duration.Companion.minutes
 @Inject
 @SingleIn(PlaybackScope::class)
 class PositionUpdater(
-  private val bookRepo: BookRepository,
+  private val threadRepo: BookThreadRepo,
   private val scope: CoroutineScope,
   private val playStateManager: PlayStateManager,
   @ExperimentalPlaybackPersistenceQualifier
@@ -106,19 +107,15 @@ class PositionUpdater(
     val bookId = mediaId.bookId ?: return
     val chapterId = mediaId.realChapterId ?: return
     val positionInChapter = mediaId.positionInChapter(currentPosition) ?: return
-    bookRepo.updateBook(bookId) { content ->
-      if (chapterId in content.chapters) {
-        Logger.d("$positionInChapter is the new position!")
-        content.copy(
-          currentChapter = chapterId,
-          positionInChapter = positionInChapter,
-          lastPlayedAt = Instant.now(),
-        )
-      } else {
-        Logger.w("$mediaId not in $content")
-        content
-      }
-    }
+    val threadId = mediaId.originatingThreadId
+    Logger.d("$positionInChapter is the new position for thread=$threadId")
+    threadRepo.updatePosition(
+      bookId = bookId,
+      threadId = threadId,
+      chapterId = chapterId,
+      positionInChapter = positionInChapter,
+      playedAt = Instant.now(),
+    )
   }
 
   fun release() {

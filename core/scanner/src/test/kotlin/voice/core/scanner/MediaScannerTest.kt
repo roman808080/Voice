@@ -14,6 +14,7 @@ import voice.core.data.ChapterId
 import voice.core.data.folders.FolderType
 import voice.core.data.repo.BookContentRepoImpl
 import voice.core.data.repo.BookRepositoryImpl
+import voice.core.data.repo.BookThreadRepoImpl
 import voice.core.data.repo.ChapterRepoImpl
 import voice.core.data.repo.internals.AppDb
 import voice.core.data.toUri
@@ -25,6 +26,7 @@ import java.nio.file.Files
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNull
+import voice.core.data.ThreadId
 
 @RunWith(AndroidJUnit4::class)
 class MediaScannerTest {
@@ -52,6 +54,35 @@ class MediaScannerTest {
         chapters = book1Chapters.drop(1),
       ),
     )
+  }
+
+  @Test
+  fun scanCreatesDefaultThreadAndReconcilesAllThreadPositions() = test {
+    val audiobookFolder = folder("audiobooks")
+    val book = File(audiobookFolder, "book")
+    val chapters = listOf(
+      audioFile(book, "1.mp3"),
+      audioFile(book, "2.mp3"),
+    )
+    scan(FolderType.Root, audiobookFolder)
+
+    val bookId = BookId(book.toUri())
+    val initial = threadRepo.all(bookId).single()
+    assertEquals(expected = ThreadId.Default, actual = initial.id)
+    val second = threadRepo.createAndActivate(
+      bookId = bookId,
+      title = "Thread 2",
+      chapterId = ChapterId(chapters.last().toUri()),
+      positionInChapter = 500,
+    )
+
+    check(chapters.first().delete())
+    scan(FolderType.Root, audiobookFolder)
+
+    val reconciled = threadRepo.all(bookId)
+    assertEquals(expected = ChapterId(chapters.last().toUri()), actual = reconciled.single { it.id == ThreadId.Default }.chapterId)
+    assertEquals(expected = 0, actual = reconciled.single { it.id == ThreadId.Default }.positionInChapter)
+    assertEquals(expected = 500, actual = reconciled.single { it.id == second.id }.positionInChapter)
   }
 
   @Test
@@ -251,17 +282,20 @@ class MediaScannerTest {
       .allowMainThreadQueries()
       .build()
     val bookContentRepo = BookContentRepoImpl(db.bookContentDao())
+    val threadRepo = BookThreadRepoImpl(db.bookThreadDao(), bookContentRepo, db)
     private val chapterRepo = ChapterRepoImpl(db.chapterDao())
     private val mediaAnalyzer = mockk<MediaAnalyzer>()
     var analyzeCalls = 0
     private val scanner = MediaScanner(
       contentRepo = bookContentRepo,
+      threadRepo = threadRepo,
       chapterParser = ChapterParser(
         chapterRepo = chapterRepo,
         mediaAnalyzer = mediaAnalyzer,
       ),
       bookParser = BookParser(
         contentRepo = bookContentRepo,
+        threadRepo = threadRepo,
         mediaAnalyzer = mediaAnalyzer,
         fileFactory = FileBasedDocumentFactory,
       ),

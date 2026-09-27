@@ -34,6 +34,7 @@ class CurrentBookResolver(
       return book
     }
     val livePosition = playerController.livePlaybackState(bookId) ?: return book
+    if (livePosition.threadId != null && livePosition.threadId != book.content.activeThreadId) return book
     return book.update {
       it.copy(
         currentChapter = livePosition.chapterId,

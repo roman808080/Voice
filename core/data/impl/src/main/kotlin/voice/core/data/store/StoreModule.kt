@@ -161,6 +161,13 @@ public interface StoreModule {
 
   @Provides
   @SingleIn(AppScope::class)
+  @BookmarkTabStore
+  private fun bookmarkTab(factory: VoiceDataStoreFactory): DataStore<Boolean> {
+    return factory.boolean("bookmarkThreadsTab", defaultValue = true)
+  }
+
+  @Provides
+  @SingleIn(AppScope::class)
   @AmountOfBatteryOptimizationRequestedStore
   private fun amountOfBatteryOptimizationsRequestedStore(factory: VoiceDataStoreFactory): DataStore<Int> {
     return factory.int("amountOfBatteryOptimizationsRequestedStore", 0)

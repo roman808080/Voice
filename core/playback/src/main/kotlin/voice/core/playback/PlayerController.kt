@@ -39,6 +39,7 @@ import voice.core.playback.session.playbackItemForPosition
 import voice.core.playback.session.positionInChapter
 import voice.core.playback.session.positionInMediaItem
 import voice.core.playback.session.sendCustomCommand
+import voice.core.playback.session.threadId
 import voice.core.playback.session.toMediaIdOrNull
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.milliseconds
@@ -136,12 +137,13 @@ class PlayerController(
 
   private suspend fun maybePrepare(controller: MediaController): Boolean {
     val bookId = currentBookStoreId.data.first() ?: return false
+    val book = bookRepository.get(bookId) ?: return false
     if (controller.currentBookId() == bookId &&
+      controller.currentThreadId() == book.content.activeThreadId &&
       controller.playbackState in listOf(Player.STATE_READY, Player.STATE_BUFFERING)
     ) {
       return true
     }
-    val book = bookRepository.get(bookId) ?: return false
     controller.setMediaItem(mediaItemProvider.mediaItem(book))
     controller.prepare()
     return true
@@ -151,6 +153,22 @@ class PlayerController(
     val currentMediaItem = currentMediaItem ?: return null
     val mediaId = currentMediaItem.mediaId.toMediaIdOrNull() ?: return null
     return mediaId.bookId
+  }
+
+  private fun MediaController.currentThreadId() = currentMediaItem?.mediaId
+    ?.toMediaIdOrNull()
+    ?.threadId
+
+  fun reloadCurrentBook() {
+    scope.launch {
+      val controller = awaitConnect() ?: return@launch
+      val bookId = currentBookStoreId.data.first() ?: return@launch
+      val book = bookRepository.get(bookId) ?: return@launch
+      val wasPlaying = controller.isPlaying
+      controller.setMediaItem(mediaItemProvider.mediaItem(book))
+      controller.prepare()
+      if (wasPlaying) controller.play()
+    }
   }
 
   fun pauseWithRewind(rewind: Duration) = executeAfterPrepare { controller ->

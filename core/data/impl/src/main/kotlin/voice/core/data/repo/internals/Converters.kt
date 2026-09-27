@@ -9,6 +9,7 @@ import voice.core.data.BookId
 import voice.core.data.Bookmark
 import voice.core.data.ChapterId
 import voice.core.data.MarkData
+import voice.core.data.ThreadId
 import java.io.File
 import java.time.Instant
 import kotlin.uuid.Uuid
@@ -78,4 +79,10 @@ internal class Converters {
 
   @TypeConverter
   fun fromBookmarkId(id: Bookmark.Id): String = id.value.toString()
+
+  @TypeConverter
+  fun toThreadId(value: String): ThreadId = ThreadId(value)
+
+  @TypeConverter
+  fun fromThreadId(id: ThreadId): String = id.value
 }

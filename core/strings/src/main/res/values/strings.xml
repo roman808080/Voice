@@ -32,6 +32,20 @@
     <string name="bookmark.edit.title">Edit bookmark</string>
     <!-- Title for bookmark screens and bookmark actions. -->
     <string name="bookmark.title">Bookmark</string>
+    <!-- Title for the screen containing listening threads and bookmarks. -->
+    <string name="bookmark.threads.title">Threads &amp; bookmarks</string>
+    <string name="bookmark.threads.tab.bookmarks">Bookmarks</string>
+    <string name="bookmark.threads.tab.threads">Threads</string>
+    <string name="bookmark.thread.default_name">Default</string>
+    <string name="bookmark.thread.generated_name">Thread %1$d</string>
+    <string name="bookmark.thread.active">Active thread</string>
+    <string name="bookmark.thread.create.title">New thread</string>
+    <string name="bookmark.thread.create.beginning">From beginning</string>
+    <string name="bookmark.thread.create.current">Fork current position</string>
+    <string name="bookmark.thread.edit.title">Rename thread</string>
+    <string name="bookmark.thread.edit.name.label">Thread name</string>
+    <string name="bookmark.thread.delete.title">Delete thread?</string>
+    <string name="bookmark.thread.delete.message">The saved listening position for “%1$s” will be lost.</string>
     <!-- Generic add action and content description. -->
     <string name="common.action.add">Add</string>
     <!-- Generic content description for closing the current screen or dialog. -->

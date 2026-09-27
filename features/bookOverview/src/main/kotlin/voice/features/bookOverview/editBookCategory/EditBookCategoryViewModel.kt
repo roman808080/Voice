@@ -4,6 +4,7 @@ import dev.zacsweers.metro.ContributesIntoSet
 import dev.zacsweers.metro.SingleIn
 import voice.core.data.BookId
 import voice.core.data.repo.BookRepository
+import voice.core.data.repo.BookThreadRepo
 import voice.features.bookOverview.bottomSheet.BottomSheetItem
 import voice.features.bookOverview.bottomSheet.BottomSheetItemViewModel
 import voice.features.bookOverview.di.BookOverviewScope
@@ -12,7 +13,10 @@ import voice.features.bookOverview.overview.category
 
 @SingleIn(BookOverviewScope::class)
 @ContributesIntoSet(BookOverviewScope::class)
-class EditBookCategoryViewModel(private val repo: BookRepository) : BottomSheetItemViewModel {
+class EditBookCategoryViewModel(
+  private val repo: BookRepository,
+  private val threadRepo: BookThreadRepo,
+) : BottomSheetItemViewModel {
 
   override suspend fun items(bookId: BookId): List<BottomSheetItem> {
     val book = repo.get(bookId) ?: return emptyList()
@@ -52,11 +56,11 @@ class EditBookCategoryViewModel(private val repo: BookRepository) : BottomSheetI
       else -> return
     }
 
-    repo.updateBook(book.id) {
-      it.copy(
-        currentChapter = currentChapter,
-        positionInChapter = positionInChapter,
-      )
-    }
+    threadRepo.updatePosition(
+      bookId = book.id,
+      threadId = book.content.activeThreadId,
+      chapterId = currentChapter,
+      positionInChapter = positionInChapter,
+    )
   }
 }

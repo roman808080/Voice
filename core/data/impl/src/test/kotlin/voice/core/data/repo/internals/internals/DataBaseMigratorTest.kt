@@ -74,6 +74,52 @@ class DataBaseMigratorTest {
   }
 
   @Test
+  fun migrate61CreatesDefaultThreadAtExistingPosition() {
+    val dbName = "migrate61"
+    val db = helper.createDatabase(dbName, 61)
+    db.execSQL(
+      """
+      INSERT INTO content2 (
+        id, playbackSpeed, skipSilence, isActive, lastPlayedAt, name, addedAt, chapters, currentChapter, positionInChapter
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      """.trimIndent(),
+      arrayOf<Any>(
+        "book",
+        1F,
+        0,
+        1,
+        "1970-01-01T00:00:00Z",
+        "Book",
+        "2026-01-02T03:04:05Z",
+        "[\"chapter\"]",
+        "chapter",
+        345,
+      ),
+    )
+    db.close()
+
+    val migratedDb = helper.runMigrationsAndValidate(
+      dbName,
+      AppDb.VERSION,
+      true,
+      *allMigrations(),
+    )
+    val content = migratedDb.query("SELECT activeThreadId FROM content2 WHERE id = 'book'")
+    content.moveToFirst()
+    assertEquals(expected = "default", actual = content.getString("activeThreadId"))
+    content.close()
+
+    val thread = migratedDb.query("SELECT * FROM bookThread WHERE bookId = 'book'")
+    thread.moveToFirst()
+    assertEquals(expected = "default", actual = thread.getString("id"))
+    assertEquals(expected = "chapter", actual = thread.getString("chapterId"))
+    assertEquals(expected = 345, actual = thread.getInt("positionInChapter"))
+    assertEquals(expected = "2026-01-02T03:04:05Z", actual = thread.getString("addedAt"))
+    assertEquals(expected = 1, actual = thread.count)
+    thread.close()
+  }
+
+  @Test
   fun migrate44() {
     val dbName = "testDb"
     val db = helper.createDatabase(dbName, 44)

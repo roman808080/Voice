@@ -23,6 +23,7 @@ class BookParserTest {
 
   private val parser = BookParser(
     contentRepo = mockk(),
+    threadRepo = mockk(),
     mediaAnalyzer = mockk(),
     fileFactory = mockk(),
   )
