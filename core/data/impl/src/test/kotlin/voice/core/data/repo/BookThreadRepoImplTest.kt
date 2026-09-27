@@ -126,6 +126,45 @@ class BookThreadRepoImplTest {
     assertEquals(expected = 25L, actual = contentRepo.get(content.id)?.positionInChapter)
   }
 
+  @Test
+  fun initializationRepairsAMissingActiveThread() = runTest {
+    val chapter = ChapterId("chapter")
+    val content = content(chapter)
+    threadRepo.initializeBook(content)
+    val second = threadRepo.createAndActivate(
+      bookId = content.id,
+      title = "Thread 2",
+      chapterId = chapter,
+      positionInChapter = 200,
+    )
+    db.bookThreadDao().delete(content.id, second.id)
+
+    threadRepo.initializeBook(requireNotNull(contentRepo.get(content.id)))
+
+    val threads = threadRepo.all(content.id)
+    assertEquals(expected = 2, actual = threads.size)
+    assertEquals(expected = 200, actual = threads.single { it.id == second.id }.positionInChapter)
+  }
+
+  @Test
+  fun positionUpdateRepairsAMissingActiveThread() = runTest {
+    val chapter = ChapterId("chapter")
+    val content = content(chapter)
+    contentRepo.put(content)
+
+    threadRepo.updatePosition(
+      bookId = content.id,
+      threadId = ThreadId.Default,
+      chapterId = chapter,
+      positionInChapter = 345,
+      playedAt = Instant.ofEpochSecond(10),
+    )
+
+    assertEquals(expected = 345, actual = threadRepo.all(content.id).single().positionInChapter)
+    assertEquals(expected = 345, actual = contentRepo.get(content.id)?.positionInChapter)
+    assertEquals(expected = Instant.ofEpochSecond(10), actual = contentRepo.get(content.id)?.lastPlayedAt)
+  }
+
   private fun content(vararg chapters: ChapterId): BookContent {
     return BookContent(
       id = BookId("book"),

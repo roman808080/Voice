@@ -12,8 +12,6 @@ import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import voice.core.data.repo.BookThreadRepo
-import voice.core.featureflag.ExperimentalPlaybackPersistenceQualifier
-import voice.core.featureflag.FeatureFlag
 import voice.core.logging.api.Logger
 import voice.core.playback.di.PlaybackScope
 import voice.core.playback.session.bookId
@@ -23,7 +21,6 @@ import voice.core.playback.session.realChapterId
 import voice.core.playback.session.toMediaIdOrNull
 import java.time.Instant
 import kotlin.time.Duration.Companion.milliseconds
-import kotlin.time.Duration.Companion.minutes
 
 @Inject
 @SingleIn(PlaybackScope::class)
@@ -31,8 +28,6 @@ class PositionUpdater(
   private val threadRepo: BookThreadRepo,
   private val scope: CoroutineScope,
   private val playStateManager: PlayStateManager,
-  @ExperimentalPlaybackPersistenceQualifier
-  private val experimentalPlaybackPersistenceFeatureFlag: FeatureFlag<Boolean>,
 ) : Player.Listener {
 
   private var player: Player? = null
@@ -50,13 +45,7 @@ class PositionUpdater(
         .collectLatest { playing ->
           if (playing) {
             while (true) {
-              delay(
-                if (experimentalPlaybackPersistenceFeatureFlag.get()) {
-                  5.minutes
-                } else {
-                  400.milliseconds
-                },
-              )
+              delay(400.milliseconds)
               flushPositionNow()
             }
           }

@@ -43,7 +43,6 @@ internal fun CreateThreadDialog(
       Column {
         ListItem(
           modifier = Modifier.clickable {
-            onDismissRequest()
             onCreateFromBeginning()
           },
         ) {
@@ -51,7 +50,6 @@ internal fun CreateThreadDialog(
         }
         ListItem(
           modifier = Modifier.clickable {
-            onDismissRequest()
             onForkCurrentPosition()
           },
         ) {

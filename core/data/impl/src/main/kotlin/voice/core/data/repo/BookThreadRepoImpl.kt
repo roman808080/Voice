@@ -31,21 +31,14 @@ public class BookThreadRepoImpl(
   override suspend fun all(bookId: BookId): List<BookThread> = dao.all(bookId)
 
   override suspend fun initializeBook(content: BookContent): Unit = mutex.withLock {
-    val existing = dao.all(content.id)
-    if (existing.isNotEmpty()) {
+    val latestContent = contentRepo.get(content.id) ?: content
+    if (dao.get(latestContent.id, latestContent.activeThreadId) != null) {
       return@withLock
     }
 
-    val thread = BookThread(
-      bookId = content.id,
-      id = ThreadId.Default,
-      title = null,
-      chapterId = content.currentChapter,
-      positionInChapter = content.positionInChapter,
-      addedAt = content.addedAt,
-    )
+    val thread = latestContent.activeThread()
     appDb.withTransaction {
-      contentRepo.put(content.copy(activeThreadId = thread.id))
+      contentRepo.put(latestContent)
       dao.insert(thread)
     }
   }
@@ -133,9 +126,11 @@ public class BookThreadRepoImpl(
     positionInChapter: Long,
     playedAt: Instant?,
   ): Unit = mutex.withLock {
-    val thread = dao.get(bookId, threadId) ?: return@withLock
     val content = contentRepo.get(bookId) ?: return@withLock
     if (chapterId !in content.chapters || positionInChapter < 0) return@withLock
+    val thread = dao.get(bookId, threadId)
+      ?: content.activeThread().takeIf { threadId == content.activeThreadId }
+      ?: return@withLock
     val updatedThread = thread.copy(
       chapterId = chapterId,
       positionInChapter = positionInChapter,
@@ -195,4 +190,15 @@ public class BookThreadRepoImpl(
       }
     }
   }
+}
+
+private fun BookContent.activeThread(): BookThread {
+  return BookThread(
+    bookId = id,
+    id = activeThreadId,
+    title = null,
+    chapterId = currentChapter,
+    positionInChapter = positionInChapter,
+    addedAt = addedAt,
+  )
 }

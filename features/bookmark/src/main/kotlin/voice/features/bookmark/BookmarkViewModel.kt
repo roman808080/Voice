@@ -18,7 +18,7 @@ import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.distinctUntilChangedBy
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.launch
-import voice.core.data.Book
+import voice.core.data.BookContent
 import voice.core.data.BookId
 import voice.core.data.BookThread
 import voice.core.data.Bookmark
@@ -26,6 +26,7 @@ import voice.core.data.Chapter
 import voice.core.data.KioskModeDemoData
 import voice.core.data.ThreadId
 import voice.core.data.markForPosition
+import voice.core.data.repo.BookContentRepo
 import voice.core.data.repo.BookRepository
 import voice.core.data.repo.BookThreadRepo
 import voice.core.data.repo.BookmarkRepo
@@ -52,6 +53,7 @@ class BookmarkViewModel(
   @BookmarkTabStore
   private val bookmarkTabStore: DataStore<Boolean>,
   private val repo: BookRepository,
+  private val contentRepo: BookContentRepo,
   private val threadRepo: BookThreadRepo,
   private val bookmarkRepo: BookmarkRepo,
   private val currentBookResolver: CurrentBookResolver,
@@ -81,11 +83,9 @@ class BookmarkViewModel(
     if (kioskMode) return kioskModeViewState(selectedTab)
 
     LaunchedEffect(bookId) {
-      repo.flow(bookId).collect { book ->
-        if (book != null) {
-          chapters = book.chapters
-          activeThreadId = book.content.activeThreadId
-        }
+      contentRepo.flow(bookId).filterNotNull().collect { content ->
+        activeThreadId = content.activeThreadId
+        threadRepo.initializeBook(content)
       }
     }
     LaunchedEffect(bookId) {
@@ -188,10 +188,10 @@ class BookmarkViewModel(
     val bookmark = bookmarks.find { it.id == id } ?: return
     scope.launch {
       currentBookStore.updateData { bookId }
-      val book = persistLivePosition() ?: return@launch
+      val content = persistLivePosition() ?: return@launch
       threadRepo.updatePosition(
         bookId = bookId,
-        threadId = book.content.activeThreadId,
+        threadId = content.activeThreadId,
         chapterId = bookmark.chapterId,
         positionInChapter = bookmark.time,
       )
@@ -213,8 +213,9 @@ class BookmarkViewModel(
 
   fun createThread(fromCurrentPosition: Boolean) {
     scope.launch {
-      val book = persistLivePosition() ?: return@launch
-      val source = if (fromCurrentPosition) book else null
+      val content = persistLivePosition() ?: return@launch
+      val source = if (fromCurrentPosition) content else null
+      val chapterId = source?.currentChapter ?: content.chapters.firstOrNull() ?: return@launch
       val existingTitles = threads.mapNotNull { it.title }.toSet()
       var number = threads.size + 1
       var title = context.getString(R.string.bookmark_thread_generated_name, number)
@@ -225,28 +226,29 @@ class BookmarkViewModel(
       val created = threadRepo.createAndActivate(
         bookId = bookId,
         title = title,
-        chapterId = source?.content?.currentChapter ?: book.chapters.first().id,
-        positionInChapter = source?.content?.positionInChapter ?: 0,
+        chapterId = chapterId,
+        positionInChapter = source?.positionInChapter ?: 0,
       )
       activeThreadId = created.id
+      dialogViewState = BookmarkDialogViewState.None
       currentBookStore.updateData { bookId }
       playerController.reloadCurrentBook()
       navigator.goBack()
     }
   }
 
-  private suspend fun persistLivePosition(): Book? {
-    val book = repo.get(bookId) ?: return null
+  private suspend fun persistLivePosition(): BookContent? {
+    val content = contentRepo.get(bookId) ?: return null
     val live = playerController.livePlaybackState(bookId)
-    if (live != null && (live.threadId == null || live.threadId == book.content.activeThreadId)) {
+    if (live != null && (live.threadId == null || live.threadId == content.activeThreadId)) {
       threadRepo.updatePosition(
         bookId = bookId,
-        threadId = book.content.activeThreadId,
+        threadId = content.activeThreadId,
         chapterId = live.chapterId,
         positionInChapter = live.positionMs,
       )
     }
-    return repo.get(bookId)
+    return contentRepo.get(bookId)
   }
 
   fun renameThread(
@@ -258,8 +260,8 @@ class BookmarkViewModel(
 
   fun deleteThread(id: ThreadId) {
     scope.launch {
-      val book = persistLivePosition() ?: return@launch
-      val deletingActive = book.content.activeThreadId == id
+      val content = persistLivePosition() ?: return@launch
+      val deletingActive = content.activeThreadId == id
       val replacement = threadRepo.delete(bookId, id)
       if (deletingActive && replacement != null) {
         activeThreadId = replacement.id

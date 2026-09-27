@@ -8,9 +8,15 @@ import app.cash.turbine.test
 import io.mockk.coEvery
 import io.mockk.every
 import io.mockk.mockk
-import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.test.StandardTestDispatcher
+import kotlinx.coroutines.test.advanceUntilIdle
+import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
+import kotlinx.coroutines.test.setMain
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import voice.core.data.Book
@@ -21,6 +27,7 @@ import voice.core.data.Bookmark
 import voice.core.data.Chapter
 import voice.core.data.ChapterId
 import voice.core.data.ThreadId
+import voice.core.data.repo.BookContentRepo
 import voice.core.data.repo.BookRepository
 import voice.core.data.repo.BookThreadRepo
 import voice.core.data.repo.BookmarkRepo
@@ -36,6 +43,7 @@ import kotlin.test.assertTrue
 import kotlin.uuid.Uuid
 
 @RunWith(RobolectricTestRunner::class)
+@OptIn(ExperimentalCoroutinesApi::class)
 class BookmarkViewModelTest {
 
   @Test
@@ -80,12 +88,18 @@ class BookmarkViewModelTest {
     }
     val threadRepo = mockk<BookThreadRepo> {
       every { flow(content.id) } returns flowOf(threads)
+      coEvery { initializeBook(content) } returns Unit
+    }
+    val contentRepo = mockk<BookContentRepo> {
+      every { flow(content.id) } returns flowOf(content)
+      coEvery { get(content.id) } returns content
     }
     val tabStore = MemoryDataStore(true)
     val viewModel = BookmarkViewModel(
       currentBookStore = MemoryDataStore(content.id),
       bookmarkTabStore = tabStore,
       repo = repo,
+      contentRepo = contentRepo,
       threadRepo = threadRepo,
       bookmarkRepo = mockk<BookmarkRepo> {
         every { bookmarks(content) } returns flowOf(emptyList())
@@ -158,8 +172,13 @@ class BookmarkViewModelTest {
       repo = mockk {
         every { flow(content.id) } returns bookFlow
       },
+      contentRepo = mockk {
+        every { flow(content.id) } returns flowOf(content)
+        coEvery { get(content.id) } returns content
+      },
       threadRepo = mockk {
         every { flow(content.id) } returns flowOf(emptyList())
+        coEvery { initializeBook(content) } returns Unit
       },
       bookmarkRepo = mockk {
         every { bookmarks(content) } returns flowOf(listOf(bookmark))
@@ -181,6 +200,78 @@ class BookmarkViewModelTest {
       while (state.bookmarks.isEmpty()) state = awaitItem()
       assertEquals(expected = "Saved place", actual = state.bookmarks.single().title)
       cancelAndIgnoreRemainingEvents()
+    }
+  }
+
+  @Test
+  fun createFromBeginningDoesNotRequireAResolvedBook() = runTest {
+    Dispatchers.setMain(StandardTestDispatcher(testScheduler))
+    try {
+      val chapterId = ChapterId("chapter")
+      val content = BookContent(
+        id = BookId("book"),
+        playbackSpeed = 1F,
+        skipSilence = false,
+        isActive = true,
+        lastPlayedAt = Instant.EPOCH,
+        author = null,
+        name = "Book",
+        addedAt = Instant.EPOCH,
+        chapters = listOf(chapterId),
+        currentChapter = chapterId,
+        positionInChapter = 2_000,
+        cover = null,
+        gain = 0F,
+        genre = null,
+        narrator = null,
+        series = null,
+        part = null,
+      )
+      val created = BookThread(
+        bookId = content.id,
+        id = ThreadId("created"),
+        title = "Thread 1",
+        chapterId = chapterId,
+        positionInChapter = 0,
+        addedAt = Instant.EPOCH,
+      )
+      val contentRepo = mockk<BookContentRepo> {
+        coEvery { get(content.id) } returns content
+      }
+      var creationCount = 0
+      val threadRepo = mockk<BookThreadRepo> {
+        coEvery {
+          createAndActivate(content.id, "Thread 1", chapterId, 0)
+        } answers {
+          creationCount++
+          created
+        }
+      }
+      val playerController = mockk<PlayerController> {
+        coEvery { livePlaybackState(content.id) } returns null
+        every { reloadCurrentBook() } returns Unit
+      }
+      val viewModel = BookmarkViewModel(
+        currentBookStore = MemoryDataStore(content.id),
+        bookmarkTabStore = MemoryDataStore(true),
+        repo = mockk(),
+        contentRepo = contentRepo,
+        threadRepo = threadRepo,
+        bookmarkRepo = mockk(),
+        currentBookResolver = mockk(),
+        playerController = playerController,
+        navigator = mockk(relaxed = true),
+        context = ApplicationProvider.getApplicationContext<Context>(),
+        kioskModeFeatureFlag = MemoryFeatureFlag(false),
+        bookId = content.id,
+      )
+
+      viewModel.createThread(fromCurrentPosition = false)
+      advanceUntilIdle()
+
+      assertEquals(expected = 1, actual = creationCount)
+    } finally {
+      Dispatchers.resetMain()
     }
   }
 }
